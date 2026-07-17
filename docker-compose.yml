@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mockflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mockflow
+      POSTGRES_PASSWORD: mockflow
+      POSTGRES_DB: mockflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - mockflow_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mockflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: mockflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - mockflow_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mockflow_pg:
+  mockflow_redis:

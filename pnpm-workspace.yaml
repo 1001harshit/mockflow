@@ -1,0 +1,19 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Dependencies allowed to run install/build scripts (pnpm 10+ security gate).
+# All standard, trusted packages needed for native binaries / codegen.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - prisma
+  - sharp
+
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
+  sharp: true

@@ -1,0 +1,26 @@
+{
+  "name": "mockflow",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Intelligent API Mocking Platform for Modern Development Teams",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @mockflow/api prisma:generate",
+    "db:migrate": "pnpm --filter @mockflow/api prisma:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0"
+  }
+}
