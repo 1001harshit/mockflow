@@ -1,17 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
+import { PrismaModule } from './prisma/prisma.module';
 
 /**
  * Root module. Domain modules (auth, mock, parser, stateful, failure, ai,
- * webhook, ...) get wired in here as each phase lands. Phase 0 keeps this
- * minimal so the API boots with no external dependencies.
+ * webhook, ...) get wired in here as each phase lands.
  */
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    PrismaModule,
   ],
   controllers: [HealthController],
 })
