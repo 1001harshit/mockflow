@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 
 /**
  * Root module. Domain modules (auth, mock, parser, stateful, failure, ai,
@@ -19,6 +20,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     AuthModule,
     UsersModule,
     WorkspacesModule,
+    ApiKeysModule,
   ],
   controllers: [HealthController],
 })
