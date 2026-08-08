@@ -17,11 +17,11 @@ export class MockController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<unknown> {
     const params = req.params as Record<string, string>;
-    const path = `/${params['*'] ?? ''}`;
     const result = await this.mock.handle(
       params.projectId,
       req.method as HttpMethod,
-      path,
+      `/${params['*'] ?? ''}`,
+      { ip: req.ip, userAgent: req.headers['user-agent'] },
     );
     reply.status(result.statusCode);
     return result.body;
