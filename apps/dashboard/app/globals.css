@@ -1,0 +1,131 @@
+:root {
+  --bg: #0b0e14;
+  --panel: #131722;
+  --border: #232838;
+  --text: #e6e9ef;
+  --muted: #8b93a7;
+  --accent: #5b8cff;
+  --green: #3fb950;
+  --red: #f85149;
+  --amber: #d29922;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 14px;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1.25rem;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+}
+.grid {
+  display: grid;
+  gap: 0.9rem;
+}
+.stat-row {
+  grid-template-columns: repeat(4, 1fr);
+}
+.stat .label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.stat .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.method {
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 5px;
+  background: #1c2333;
+  color: var(--accent);
+}
+.badge-ok {
+  color: var(--green);
+}
+.badge-err {
+  color: var(--red);
+}
+input,
+button {
+  font: inherit;
+}
+input {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  background: #0e1220;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  margin-top: 0.35rem;
+}
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.muted {
+  color: var(--muted);
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
