@@ -1,35 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { HttpMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StatefulService } from '../stateful/stateful.service';
 import { ResponseGenerator } from './response-generator.service';
+import { MockMeta, MockResult } from './mock.types';
 
-export interface MockResult {
-  statusCode: number;
-  body: unknown;
-}
-
-export interface MockMeta {
-  ip?: string;
-  userAgent?: string;
-}
+type Query = Record<string, string | string[] | undefined>;
 
 @Injectable()
 export class MockService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly generator: ResponseGenerator,
+    private readonly stateful: StatefulService,
   ) {}
 
   /**
-   * Matches an incoming request against a project's endpoints, serves it, and
-   * records a RequestLog. A miss is a normal 404 result (also logged), not a
-   * thrown exception, so every hit is measured uniformly.
+   * Matches an incoming request against a project's endpoints and serves it —
+   * from the stateful store if the endpoint is stateful, otherwise from its
+   * example/schema. Every hit (incl. 404) is logged.
    */
   async handle(
     projectId: string,
     method: HttpMethod,
     path: string,
     meta: MockMeta = {},
+    body?: unknown,
+    query: Query = {},
   ): Promise<MockResult> {
     const start = Date.now();
 
@@ -46,6 +43,16 @@ export class MockService {
         statusCode: 404,
         body: { message: `No mock for ${method} ${path}` },
       };
+    } else if (match.stateful) {
+      endpointId = match.id;
+      result = await this.stateful.handle(
+        projectId,
+        match,
+        path,
+        method,
+        body,
+        query,
+      );
     } else {
       endpointId = match.id;
       const response = match.responses[0];
@@ -71,7 +78,6 @@ export class MockService {
     latencyMs: number,
     meta: MockMeta,
   ): void {
-    // Fire-and-forget so logging never slows or breaks the response path.
     void this.prisma.requestLog
       .create({
         data: {

@@ -22,6 +22,8 @@ export class MockController {
       req.method as HttpMethod,
       `/${params['*'] ?? ''}`,
       { ip: req.ip, userAgent: req.headers['user-agent'] },
+      req.body,
+      req.query as Record<string, string | string[] | undefined>,
     );
     reply.status(result.statusCode);
     return result.body;
