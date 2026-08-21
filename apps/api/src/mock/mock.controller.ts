@@ -1,11 +1,15 @@
 import { All, Controller, Req, Res } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { HttpMethod } from '@prisma/client';
+import { FAILURE_HEADER } from '../failure/failure.types';
 import { MockService } from './mock.service';
 
 /**
  * The mock plane: any method under /mock/:projectId/* is matched against the
  * project's imported endpoints and served. No auth — mocks are public URLs.
+ *
+ * The reply is handled manually (no `passthrough`) because a simulated network
+ * failure has to destroy the socket instead of sending anything at all.
  */
 @Controller('mock')
 export class MockController {
@@ -14,8 +18,8 @@ export class MockController {
   @All(':projectId/*')
   async serve(
     @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<unknown> {
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
     const params = req.params as Record<string, string>;
     const result = await this.mock.handle(
       params.projectId,
@@ -25,7 +29,16 @@ export class MockController {
       req.body,
       req.query as Record<string, string | string[] | undefined>,
     );
-    reply.status(result.statusCode);
-    return result.body;
+
+    if (result.abort) {
+      // Take the reply off Fastify's hands, then cut the connection so the
+      // client sees a reset rather than an HTTP error.
+      reply.hijack();
+      reply.raw.destroy();
+      return;
+    }
+
+    if (result.failure) reply.header(FAILURE_HEADER, result.failure);
+    await reply.status(result.statusCode).send(result.body);
   }
 }
