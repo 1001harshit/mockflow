@@ -1,4 +1,15 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { FailureRuleDto } from './failure-rule.dto';
 
 export class UpdateEndpointDto {
   @IsOptional()
@@ -18,4 +29,11 @@ export class UpdateEndpointDto {
   @IsOptional()
   @IsBoolean()
   stateful?: boolean;
+
+  /** Failure-simulation rules (Phase 5). Send `[]` to clear them. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FailureRuleDto)
+  failureRules?: FailureRuleDto[];
 }

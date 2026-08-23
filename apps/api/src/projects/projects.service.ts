@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenApiParser } from '../parser/openapi.parser';
+import { FailureService } from '../failure/failure.service';
 import { UpdateEndpointDto } from './dto/update-endpoint.dto';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -10,6 +11,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly parser: OpenApiParser,
+    private readonly failure: FailureService,
   ) {}
 
   /**
@@ -68,6 +70,7 @@ export class ProjectsService {
         path: true,
         description: true,
         stateful: true,
+        failureRules: true,
         responses: {
           where: { isDefault: true },
           select: { statusCode: true, body: true },
@@ -87,10 +90,22 @@ export class ProjectsService {
     });
     if (!endpoint) throw new NotFoundException('Endpoint not found');
 
-    if (dto.description !== undefined || dto.stateful !== undefined) {
+    if (
+      dto.description !== undefined ||
+      dto.stateful !== undefined ||
+      dto.failureRules !== undefined
+    ) {
       await this.prisma.endpoint.update({
         where: { id: endpointId },
-        data: { description: dto.description, stateful: dto.stateful },
+        data: {
+          description: dto.description,
+          stateful: dto.stateful,
+          // normalize() fills defaults and rejects rules totalling over 100%.
+          failureRules:
+            dto.failureRules === undefined
+              ? undefined
+              : (this.failure.normalize(dto.failureRules) as any),
+        },
       });
     }
 
@@ -133,6 +148,7 @@ export class ProjectsService {
         path: true,
         statusCode: true,
         latencyMs: true,
+        failureType: true,
         createdAt: true,
       },
     });
@@ -146,12 +162,21 @@ export class ProjectsService {
         where: { projectId },
         orderBy: { createdAt: 'desc' },
         take: 500,
-        select: { statusCode: true, latencyMs: true },
+        select: { statusCode: true, latencyMs: true, failureType: true },
       }),
     ]);
 
     const latencies = recent.map((r) => r.latencyMs).sort((a, b) => a - b);
     const errors = recent.filter((r) => r.statusCode >= 400).length;
+
+    // How much of the recent traffic was sabotaged on purpose (Phase 5), so a
+    // spike in the error rate can be told apart from a genuine regression.
+    const injected = recent.filter((r) => r.failureType);
+    const byType: Record<string, number> = {};
+    for (const row of injected) {
+      byType[row.failureType as string] =
+        (byType[row.failureType as string] ?? 0) + 1;
+    }
     const percentile = (p: number) =>
       latencies.length
         ? latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))]
@@ -161,6 +186,13 @@ export class ProjectsService {
       totalRequests: total,
       sampleSize: recent.length,
       errorRate: recent.length ? Number((errors / recent.length).toFixed(3)) : 0,
+      injectedFailures: {
+        count: injected.length,
+        rate: recent.length
+          ? Number((injected.length / recent.length).toFixed(3))
+          : 0,
+        byType,
+      },
       latencyMs: {
         avg: latencies.length
           ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
