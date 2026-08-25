@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
+import { FailureEditor, failureSummary } from './failure-editor';
 
 type Endpoints = Awaited<ReturnType<typeof api.endpoints>>;
 type Stats = Awaited<ReturnType<typeof api.stats>>;
@@ -15,6 +16,7 @@ export default function ProjectPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<Logs>([]);
   const [spec, setSpec] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -69,7 +71,13 @@ export default function ProjectPage() {
         </p>
         {error && <div className="badge-err">{error}</div>}
 
-        <div className="grid stat-row" style={{ margin: '1rem 0 1.4rem' }}>
+        <div
+          className="grid stat-row"
+          style={{
+            margin: '1rem 0 1.4rem',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+          }}
+        >
           <div className="card stat">
             <div className="label">Requests</div>
             <div className="value">{stats?.totalRequests ?? '—'}</div>
@@ -90,6 +98,19 @@ export default function ProjectPage() {
             <div className="label">p95 latency</div>
             <div className="value">
               {stats ? `${stats.latencyMs.p95}ms` : '—'}
+            </div>
+          </div>
+          <div className="card stat">
+            <div className="label">Injected</div>
+            <div className="value">
+              {stats ? `${(stats.injectedFailures.rate * 100).toFixed(1)}%` : '—'}
+            </div>
+            <div className="muted" style={{ fontSize: '0.72rem' }}>
+              {stats && stats.injectedFailures.count > 0
+                ? Object.entries(stats.injectedFailures.byType)
+                    .map(([type, n]) => `${type} ${n}`)
+                    .join(' · ')
+                : 'no chaos'}
             </div>
           </div>
         </div>
@@ -130,6 +151,7 @@ export default function ProjectPage() {
                 <th>Method</th>
                 <th>Path</th>
                 <th>Status</th>
+                <th>Failures</th>
                 <th>Try</th>
               </tr>
             </thead>
@@ -141,6 +163,17 @@ export default function ProjectPage() {
                   </td>
                   <td className="mono">{e.path}</td>
                   <td>{e.responses[0]?.statusCode ?? '—'}</td>
+                  <td>
+                    <button
+                      className="btn secondary"
+                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.78rem' }}
+                      onClick={() =>
+                        setEditing(editing === e.id ? null : e.id)
+                      }
+                    >
+                      {failureSummary(e.failureRules)}
+                    </button>
+                  </td>
                   <td>
                     <a
                       href={`${mockBase}${e.path.replace(/\{[^}]+\}/g, '1')}`}
@@ -154,7 +187,7 @@ export default function ProjectPage() {
               ))}
               {endpoints?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="muted">
+                  <td colSpan={5} className="muted">
                     No endpoints — import a spec above.
                   </td>
                 </tr>
@@ -162,6 +195,16 @@ export default function ProjectPage() {
             </tbody>
           </table>
         </div>
+
+        {editing && (
+          <FailureEditor
+            projectId={id}
+            endpointId={editing}
+            initial={endpoints?.find((e) => e.id === editing)?.failureRules ?? []}
+            onClose={() => setEditing(null)}
+            onSaved={() => void load()}
+          />
+        )}
 
         <h3>Recent requests</h3>
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -172,6 +215,7 @@ export default function ProjectPage() {
                 <th>Path</th>
                 <th>Status</th>
                 <th>Latency</th>
+                <th>Failure</th>
               </tr>
             </thead>
             <tbody>
@@ -185,11 +229,12 @@ export default function ProjectPage() {
                     {l.statusCode}
                   </td>
                   <td>{l.latencyMs}ms</td>
+                  <td className="muted">{l.failureType ?? '—'}</td>
                 </tr>
               ))}
               {logs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="muted">
+                  <td colSpan={5} className="muted">
                     No requests yet.
                   </td>
                 </tr>

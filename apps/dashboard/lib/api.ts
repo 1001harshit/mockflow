@@ -1,3 +1,14 @@
+export type FailureType = 'error' | 'slow' | 'timeout' | 'network' | 'db_down';
+
+export interface FailureRule {
+  type: FailureType;
+  percent: number;
+  statusCode?: number;
+  delayMs?: number;
+  enabled?: boolean;
+  body?: unknown;
+}
+
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -76,13 +87,28 @@ export const api = {
         path: string;
         description?: string;
         stateful: boolean;
+        failureRules: FailureRule[] | null;
         responses: Array<{ statusCode: number }>;
       }>
     >(`/api/projects/${pid}/endpoints`),
+  updateEndpoint: (
+    pid: string,
+    endpointId: string,
+    patch: { failureRules?: FailureRule[]; stateful?: boolean },
+  ) =>
+    req(`/api/projects/${pid}/endpoints/${endpointId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
   stats: (pid: string) =>
     req<{
       totalRequests: number;
       errorRate: number;
+      injectedFailures: {
+        count: number;
+        rate: number;
+        byType: Record<string, number>;
+      };
       latencyMs: { avg: number; p50: number; p95: number; p99: number };
     }>(`/api/projects/${pid}/stats`),
   logs: (pid: string, limit = 20) =>
@@ -93,6 +119,7 @@ export const api = {
         path: string;
         statusCode: number;
         latencyMs: number;
+        failureType: FailureType | null;
         createdAt: string;
       }>
     >(`/api/projects/${pid}/logs?limit=${limit}`),
