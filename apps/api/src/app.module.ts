@@ -8,6 +8,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MockModule } from './mock/mock.module';
+import { AiModule } from './ai/ai.module';
 
 /**
  * Root module. Domain modules (auth, mock, parser, stateful, failure, ai,
@@ -25,6 +26,7 @@ import { MockModule } from './mock/mock.module';
     ApiKeysModule,
     ProjectsModule,
     MockModule,
+    AiModule,
   ],
   controllers: [HealthController],
 })
