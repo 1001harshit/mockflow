@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiJobsService } from './ai-jobs.service';
 import { OpenAiClient } from './openai.client';
 import { RealisticGenerator } from './realistic-generator.service';
+import { SuggestionsService, Suggestions, TestCase } from './suggestions.service';
 import { GenerateDataDto } from './dto/generate-data.dto';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -21,6 +22,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly openai: OpenAiClient,
     private readonly local: RealisticGenerator,
+    private readonly suggestions: SuggestionsService,
     private readonly jobs: AiJobsService,
   ) {}
 
@@ -80,6 +82,85 @@ export class AiService {
     }
 
     return { source, data, saved };
+  }
+
+  /**
+   * Suggests response examples, validation rules and a starting test suite for
+   * an endpoint. The schema-derived set is always returned; a configured model
+   * only adds edge cases on top, so this never returns less than it would have.
+   */
+  async suggest(
+    workspaceId: string,
+    projectId: string,
+    endpointId: string,
+    options: { local?: boolean } = {},
+  ): Promise<Suggestions & { source: 'openai' | 'local' }> {
+    const endpoint = await this.prisma.endpoint.findFirst({
+      where: { id: endpointId, projectId },
+    });
+    if (!endpoint) throw new NotFoundException('Endpoint not found');
+
+    const failureTypes = Array.isArray(endpoint.failureRules)
+      ? (endpoint.failureRules as any[])
+          .filter((r) => r?.enabled !== false && r?.type !== 'slow')
+          .map((r) => String(r?.type))
+      : [];
+
+    const derived = this.suggestions.build(
+      endpoint.method,
+      endpoint.path,
+      endpoint.responseSchema,
+      endpoint.requestSchema,
+      failureTypes,
+    );
+
+    if (!this.openai.configured || options.local) {
+      return { ...derived, source: 'local' };
+    }
+
+    try {
+      const result = await this.jobs.track(
+        workspaceId,
+        'generate-tests',
+        { endpointId, path: endpoint.path },
+        () =>
+          this.openai.json<{ testCases: TestCase[] }>(
+            this.testPrompt(endpoint.method, endpoint.path, endpoint.responseSchema, derived),
+          ),
+      );
+      const extra = Array.isArray(result.output?.testCases)
+        ? result.output.testCases
+        : [];
+      return {
+        ...derived,
+        testCases: [...derived.testCases, ...extra],
+        source: 'openai',
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Suggestion enrichment failed, returning derived set: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+      return { ...derived, source: 'local' };
+    }
+  }
+
+  private testPrompt(
+    method: string,
+    path: string,
+    schema: unknown,
+    derived: Suggestions,
+  ): string {
+    return [
+      `Suggest additional edge-case tests for ${method} ${path}.`,
+      'Schema:',
+      JSON.stringify(schema).slice(0, 3_000),
+      'Already covered, do not repeat:',
+      derived.testCases.map((t) => `- ${t.name}`).join('\n'),
+      'Return {"testCases": [{"name", "method", "path", "body", "expectStatus", "note"}]}.',
+      'Focus on boundaries, encoding, concurrency and auth — at most 6 cases.',
+    ].join('\n');
   }
 
   /** Replaces the endpoint's default response body with the generated data. */

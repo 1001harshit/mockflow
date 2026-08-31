@@ -51,6 +51,19 @@ export class AiController {
     return this.jobs.list(project.workspaceId, limit ? Number(limit) : 20);
   }
 
+  /** Suggest response examples, validation rules and a starting test suite. */
+  @Post('endpoints/:endpointId/suggest')
+  @HttpCode(HttpStatus.OK)
+  suggest(
+    @CurrentProject() project: ProjectRef,
+    @Param('endpointId') endpointId: string,
+    @Query('local') local?: string,
+  ) {
+    return this.ai.suggest(project.workspaceId, project.id, endpointId, {
+      local: local === 'true',
+    });
+  }
+
   /** Fill an endpoint's response with believable data. */
   @Post('endpoints/:endpointId/generate')
   @HttpCode(HttpStatus.OK)
