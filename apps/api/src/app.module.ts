@@ -9,6 +9,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MockModule } from './mock/mock.module';
 import { AiModule } from './ai/ai.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 /**
  * Root module. Domain modules (auth, mock, parser, stateful, failure, ai,
@@ -27,6 +28,7 @@ import { AiModule } from './ai/ai.module';
     ProjectsModule,
     MockModule,
     AiModule,
+    WebhooksModule,
   ],
   controllers: [HealthController],
 })
