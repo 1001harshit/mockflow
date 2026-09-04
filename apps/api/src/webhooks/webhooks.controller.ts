@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -15,13 +17,18 @@ import {
   ProjectRef,
 } from '../common/decorators/current-project.decorator';
 import { WebhooksService } from './webhooks.service';
+import { DeliveryService } from './delivery.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
+import { SendWebhookDto } from './dto/send-webhook.dto';
 
 /** Outbound webhook simulation (Phase 7), scoped to a project. */
 @Controller('api/projects/:id/webhooks')
 @UseGuards(JwtAuthGuard, ProjectAccessGuard)
 export class WebhooksController {
-  constructor(private readonly webhooks: WebhooksService) {}
+  constructor(
+    private readonly webhooks: WebhooksService,
+    private readonly delivery: DeliveryService,
+  ) {}
 
   @Post()
   create(@CurrentProject() project: ProjectRef, @Body() dto: CreateWebhookDto) {
@@ -31,6 +38,17 @@ export class WebhooksController {
   @Get()
   list(@CurrentProject() project: ProjectRef) {
     return this.webhooks.list(project.id);
+  }
+
+  /** Fire a signed delivery, retrying until it lands or attempts run out. */
+  @Post(':webhookId/send')
+  @HttpCode(HttpStatus.OK)
+  send(
+    @CurrentProject() project: ProjectRef,
+    @Param('webhookId') webhookId: string,
+    @Body() dto: SendWebhookDto,
+  ) {
+    return this.delivery.send(project.id, webhookId, dto);
   }
 
   @Delete(':webhookId')
