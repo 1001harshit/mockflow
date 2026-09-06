@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Provider, SigningService } from './signing.service';
+import { samplePayload } from './provider-presets';
 import { SendWebhookDto } from './dto/send-webhook.dto';
 
 /** First retry waits this long; each further one doubles it. */
@@ -72,7 +73,9 @@ export class DeliveryService {
     if (!webhook) throw new NotFoundException('Webhook not found');
 
     const provider = webhook.provider as Provider;
-    const payload = dto.payload ?? { event: dto.event, mockflow: true };
+    // No payload given: send something shaped like the provider's real event,
+    // so a receiver's parsing code is exercised rather than side-stepped.
+    const payload = dto.payload ?? samplePayload(provider, dto.event);
     const maxAttempts = dto.maxAttempts ?? 3;
     const attempts: AttemptResult[] = [];
 

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -18,6 +19,7 @@ import {
 } from '../common/decorators/current-project.decorator';
 import { WebhooksService } from './webhooks.service';
 import { DeliveryService } from './delivery.service';
+import { providerCatalog, samplePayload } from './provider-presets';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { SendWebhookDto } from './dto/send-webhook.dto';
 
@@ -38,6 +40,24 @@ export class WebhooksController {
   @Get()
   list(@CurrentProject() project: ProjectRef) {
     return this.webhooks.list(project.id);
+  }
+
+  /** Providers MockFlow can imitate, and the events each one sends. */
+  @Get('providers')
+  providers() {
+    return providerCatalog();
+  }
+
+  /** Preview the payload a provider would send for an event. */
+  @Get('providers/:provider/sample')
+  sample(
+    @Param('provider') provider: string,
+    @Query('event') event?: string,
+  ) {
+    const catalog = providerCatalog().find((p) => p.provider === provider);
+    if (!catalog) throw new NotFoundException('Unknown provider');
+    const chosen = event ?? catalog.events[0];
+    return { provider, event: chosen, payload: samplePayload(catalog.provider, chosen) };
   }
 
   /** Fire a signed delivery, retrying until it lands or attempts run out. */
