@@ -123,6 +123,13 @@ importers:
         version: 5.9.3
 
   packages/cli:
+    dependencies:
+      '@mockflow/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@mockflow/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -130,6 +137,9 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.1)(supports-color@8.1.1)(terser@5.49.0)
 
   packages/sdk:
     dependencies:
