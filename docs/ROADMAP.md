@@ -17,13 +17,26 @@
 
 ## Current status
 
-- [x] **Phase 0** — scaffold + docs + schema draft (in progress → nearly done)
-- [ ] Phase 1 — auth
-- [ ] Phase 2 — mock engine
-- [ ] Phase 3 — dashboard
-- [ ] Phase 4 — stateful APIs
-- [ ] Phase 5 — failure simulation
-- [ ] Phase 6 — AI generation
-- [ ] Phase 7 — webhooks
-- [ ] Phase 8 — SDK & CLI
-- [ ] Phase 9 — polish
+Complete. Every phase shipped and was verified against a live Postgres.
+
+- [x] **Phase 0** — scaffold + docs + schema
+- [x] **Phase 1** — auth
+- [x] **Phase 2** — mock engine
+- [x] **Phase 3** — dashboard
+- [x] **Phase 4** — stateful APIs
+- [x] **Phase 5** — failure simulation
+- [x] **Phase 6** — generation (local + OpenAI)
+- [x] **Phase 7** — webhooks
+- [x] **Phase 8** — SDK & CLI
+- [x] **Phase 9** — tests & docs
+
+### Known gaps, worth picking up next
+
+- **Spec formats.** OpenAPI/Swagger JSON only — no YAML, and no Postman
+  collection importer yet. `$ref` resolution is one hop deep.
+- **Response variants.** One default response per endpoint; the `Response`
+  table supports more, but nothing selects between them yet.
+- **Queueing.** Webhook delivery and generation run inline. BullMQ is in the
+  stack for when fan-out justifies it.
+- **Dashboard coverage.** Failure rules are editable in the UI; webhooks and
+  generation are API- and CLI-only so far.

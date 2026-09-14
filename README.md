@@ -29,31 +29,35 @@ Postman Mock Server + Beeceptor + Mockoon + Prism + WireMock — made smarter.
 mockflow/
   apps/
     api/                 # NestJS backend (the platform)
+      prisma/            # schema.prisma + migrations
       src/
-        auth/            # workspaces, users, roles, JWT, API keys
-        api/             # public REST for dashboard
-        mock/            # THE mock engine (route + response generation)
-        parser/          # OpenAPI / Swagger / Postman -> internal model
+        auth/            # register, login, refresh, JWT strategy + guard
+        users/           # GET /api/me
+        workspaces/      # workspaces, projects, roles
+        api-keys/        # create/list/revoke keys, x-api-key guard
+        projects/        # spec import, endpoints, logs, stats
+        parser/          # OpenAPI / Swagger -> internal model
+        mock/            # THE mock engine (matching + response generation)
         stateful/        # CRUD store, pagination, sorting, search
-        failure/         # error / latency / timeout simulator
-        ai/              # OpenAI-backed generation
-        webhook/         # outbound webhook simulator (Stripe, GitHub...)
-        storage/         # persistence services
-        cache/           # Redis wrappers
-        workers/         # BullMQ processors (webhooks, AI jobs)
-        common/          # guards, interceptors, filters, decorators
-        utils/
-    dashboard/           # Next.js UI (Vercel-style)
+        failure/         # error / latency / timeout / network simulator
+        ai/              # data, examples, validation and test generation
+        webhooks/        # signing, retrying delivery, provider presets
+        prisma/          # PrismaModule / PrismaService
+        common/          # decorators, hashing, slug helpers
+    dashboard/           # Next.js UI
   packages/
     sdk/                 # @mockflow/sdk (TS client)
-    cli/                 # mockflow CLI (init/start/deploy/export)
-    shared-types/        # types shared API <-> dashboard <-> sdk
-    config/              # shared tsconfig / eslint
-  docs/                  # ARCHITECTURE, SYSTEM_DESIGN, DATABASE, API_SPEC, ROADMAP
+    cli/                 # mockflow CLI (init/deploy/start/export/logs/chaos)
+    shared-types/        # types shared API <-> dashboard <-> sdk <-> cli
+  docs/                  # ARCHITECTURE, SYSTEM_DESIGN, DATABASE, API_SPEC,
+                         # ROADMAP, FAILURE_SIMULATION
   docker-compose.yml     # postgres + redis for local dev
   turbo.json
   pnpm-workspace.yaml
 ```
+
+> Redis and BullMQ are in the stack for queued fan-out; webhook delivery and
+> generation currently run inline, which is called out in the roadmap's gaps.
 
 ---
 
@@ -138,8 +142,76 @@ Tables: `users, workspaces, memberships, projects, endpoints, responses, collect
 
 ## 7. Current Status
 
-- [x] Repo initialized, stack decided
-- [ ] Phase 0 — scaffold + docs  ← **next**
-- [ ] Phase 1 — auth
-- [ ] Phase 2 — mock engine
-- [ ] ...
+All ten phases are implemented and verified against a live Postgres.
+
+- [x] **Phase 0** — monorepo scaffold, Docker stack, docs, Prisma schema
+- [x] **Phase 1** — auth: register/login/refresh, workspaces, roles, API keys
+- [x] **Phase 2** — mock engine: spec import, live mock plane, request logging
+- [x] **Phase 3** — dashboard: projects, endpoints, stats, logs, spec import
+- [x] **Phase 4** — stateful CRUD with search, sort and pagination
+- [x] **Phase 5** — failure simulation: error / slow / timeout / network / db_down
+- [x] **Phase 6** — generation: realistic data, examples, validation rules, tests
+- [x] **Phase 7** — webhooks: provider-accurate signing, retries, delivery logs
+- [x] **Phase 8** — `@mockflow/sdk` and the `mockflow` CLI
+- [x] **Phase 9** — 174 tests across the API, SDK and CLI
+
+---
+
+## 8. Quickstart
+
+```bash
+pnpm install
+pnpm db:up                                  # Postgres + Redis via Docker
+cp .env.example .env
+pnpm --filter @mockflow/api exec prisma migrate dev
+pnpm dev                                    # API :4000, dashboard :3000
+```
+
+Then, in the dashboard or over the API: register, create a project, import an
+OpenAPI document, and the endpoints serve immediately at
+`http://localhost:4000/mock/<projectId>/<path>`.
+
+### With the CLI
+
+```bash
+export MOCKFLOW_TOKEN=...                   # or MOCKFLOW_API_KEY
+mockflow init --project <id> --spec ./openapi.json
+mockflow start                              # sync now, and on every save
+mockflow chaos /orders error:10 slow:20@2000
+mockflow logs --limit 20
+mockflow export --out snapshot.json
+```
+
+### With the SDK
+
+```ts
+import { MockFlowClient } from '@mockflow/sdk';
+
+const client = new MockFlowClient({ baseUrl: 'http://localhost:4000' });
+await client.login('you@example.com', 'password');
+
+const project = client.project(projectId);
+await project.importSpec(spec);
+await project.setFailureRules(endpointId, [{ type: 'error', percent: 10 }]);
+await project.generate(endpointId, { count: 20, save: true });
+```
+
+---
+
+## 9. What makes it different
+
+- **Self-hosted.** Your specs and traffic stay on your own Postgres.
+- **Stateful.** `POST /users` then `GET /users` returns what you posted —
+  with `q`, `_sort`, `_page` and `_limit` on the list.
+- **Chaos by rule.** Per-endpoint percentages of errors, latency, timeouts,
+  dropped connections and database outages, reported separately from genuine
+  errors so a chaos run can be told apart from a regression.
+- **Data that reads like a catalogue.** Generated records are internally
+  consistent: the brand matches its category, the email matches the name.
+  Works with no API key; a configured model only adds to it.
+- **Webhooks you can actually verify.** Deliveries are signed the way Stripe,
+  GitHub, Slack, Shopify and Razorpay sign theirs, so the verification code
+  you ship is the code that gets exercised.
+
+See [docs/FAILURE_SIMULATION.md](docs/FAILURE_SIMULATION.md) for the failure
+rules and [docs/API_SPEC.md](docs/API_SPEC.md) for the full API surface.
