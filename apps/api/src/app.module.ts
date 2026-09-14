@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
@@ -19,6 +20,13 @@ import { WebhooksModule } from './webhooks/webhooks.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // The .env lives at the repo root, but the working directory is apps/api
+      // when this is started through its own package script. Look in both, so
+      // `pnpm dev` works from either place without exporting anything by hand.
+      envFilePath: [
+        join(process.cwd(), '.env'),
+        join(process.cwd(), '..', '..', '.env'),
+      ],
     }),
     PrismaModule,
     AuthModule,

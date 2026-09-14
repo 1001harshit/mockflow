@@ -161,11 +161,15 @@ All ten phases are implemented and verified against a live Postgres.
 
 ```bash
 pnpm install
+cp .env.example .env                        # then edit if you want an OpenAI key
 pnpm db:up                                  # Postgres + Redis via Docker
-cp .env.example .env
-pnpm --filter @mockflow/api exec prisma migrate dev
+pnpm db:migrate                             # apply migrations
 pnpm dev                                    # API :4000, dashboard :3000
 ```
+
+Open <http://localhost:3000> and register. Everything reads the one `.env` at
+the repo root, so there is nothing to export by hand. `pnpm db:down` stops the
+containers when you're done.
 
 Then, in the dashboard or over the API: register, create a project, import an
 OpenAPI document, and the endpoints serve immediately at
