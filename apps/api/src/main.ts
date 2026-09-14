@@ -13,7 +13,14 @@ async function bootstrap(): Promise<void> {
     new FastifyAdapter(),
   );
 
-  app.enableCors();
+  // Be explicit about methods: the dashboard saves failure rules with PATCH and
+  // removes webhooks with DELETE, and a preflight that doesn't list them gets
+  // the request blocked by the browser before it is ever sent.
+  app.enableCors({
+    origin: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['content-type', 'authorization', 'x-api-key'],
+  });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true }),
   );

@@ -20,8 +20,8 @@ export default function LoginPage() {
       if (mode === 'register') {
         await api.register(email, password);
       }
-      const { accessToken } = await api.login(email, password);
-      setToken(accessToken);
+      const { accessToken, refreshToken } = await api.login(email, password);
+      setToken(accessToken, refreshToken);
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
