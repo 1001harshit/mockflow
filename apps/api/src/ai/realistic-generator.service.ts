@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  BRAND_PRODUCTS,
   CATEGORIES,
   CategorySpec,
   CITIES,
@@ -256,11 +257,14 @@ export class RealisticGenerator {
     if (!ctx.product) {
       const spec = this.pick(CATEGORIES, rng);
       const subcategory = this.pick(spec.subcategories, rng);
-      const nouns = PRODUCT_NOUNS[subcategory] ?? [subcategory];
-      const noun = this.pick(nouns, rng);
       // One brand per item: the `brand` field and the brand inside the product
       // name have to agree, or the record contradicts itself.
       const brand = this.pick(spec.brands, rng);
+      // Prefer a model that brand actually sells; fall back to a neutral noun
+      // any brand can front, so we never produce "OnePlus iPad Air".
+      const owned = BRAND_PRODUCTS[`${brand}|${subcategory}`];
+      const nouns = owned ?? PRODUCT_NOUNS[subcategory] ?? [subcategory];
+      const noun = this.pick(nouns, rng);
       // Books read oddly with a publisher in front of the title.
       const name = spec.name === 'Books' ? noun : `${brand} ${noun}`;
       ctx.product = { spec, subcategory, brand, name };

@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
 import { RealisticGenerator } from './realistic-generator.service';
-import { CATEGORIES } from './catalog';
+import { BRAND_PRODUCTS, CATEGORIES } from './catalog';
 
 const generator = new RealisticGenerator();
 
@@ -61,6 +61,23 @@ describe('RealisticGenerator', () => {
       // Books are titled without their publisher, so only the rest must match.
       if (item.category === 'Books') continue;
       expect(item.productName.startsWith(item.brand)).toBe(true);
+    }
+  });
+
+  it('never attaches a brand-owned model name to another brand', () => {
+    const items = generator.generate(productSchema, { count: 40 }) as Array<
+      Record<string, string>
+    >;
+    for (const item of items) {
+      if (item.category === 'Books') continue;
+      const model = item.productName.slice(item.brand.length + 1);
+      // If any brand claims this model, it has to be the brand on the record.
+      const owners = Object.entries(BRAND_PRODUCTS)
+        .filter(([, models]) => models.includes(model))
+        .map(([key]) => key.split('|')[0]);
+      if (owners.length) {
+        expect(owners, `${item.brand} / ${model}`).toContain(item.brand);
+      }
     }
   });
 

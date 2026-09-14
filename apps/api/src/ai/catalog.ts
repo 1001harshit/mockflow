@@ -47,18 +47,49 @@ export const CATEGORIES: CategorySpec[] = [
   },
 ];
 
-/** Nouns used to build product names, keyed by subcategory. */
+/**
+ * Model names that belong to a specific brand, keyed `"<brand>|<subcategory>"`.
+ *
+ * Without this the brand and the model are drawn independently and you get
+ * "OnePlus iPad Air" — internally consistent by the code's own rules, and
+ * obviously wrong to any reader. Real model names have owners.
+ */
+export const BRAND_PRODUCTS: Record<string, string[]> = {
+  'Apple|Phones': ['iPhone 15', 'iPhone 15 Pro'],
+  'Samsung|Phones': ['Galaxy S24', 'Galaxy A55'],
+  'OnePlus|Phones': ['Nord 4', 'OnePlus 12R'],
+  'Sony|Phones': ['Xperia 10 VI'],
+  'Apple|Laptops': ['MacBook Air 13', 'MacBook Pro 14'],
+  'Lenovo|Laptops': ['ThinkPad X1 Carbon', 'IdeaPad Slim 5'],
+  'Samsung|Laptops': ['Galaxy Book4'],
+  'Sony|Headphones': ['WH-1000XM5', 'WF-C710N'],
+  'Apple|Headphones': ['AirPods Pro 2', 'AirPods Max'],
+  'Samsung|Headphones': ['Galaxy Buds3 Pro'],
+  'OnePlus|Headphones': ['Nord Buds 3'],
+  'Apple|Tablets': ['iPad Air 11', 'iPad Pro 13'],
+  'Samsung|Tablets': ['Galaxy Tab S9'],
+  'Lenovo|Tablets': ['Tab P12'],
+  'OnePlus|Tablets': ['Pad 2'],
+  'Nike|Footwear': ['Air Zoom Pegasus 41', 'Air Force 1'],
+  'Adidas|Footwear': ['Ultraboost 22', 'Samba OG'],
+  'Puma|Footwear': ['Suede Classic', 'RS-X'],
+};
+
+/**
+ * Brand-neutral nouns, keyed by subcategory. Used when a brand has no model of
+ * its own listed above, so any brand can front them without reading oddly.
+ */
 export const PRODUCT_NOUNS: Record<string, string[]> = {
-  Phones: ['Galaxy S24', 'Pixel 9', 'Nord 4', 'iPhone 15'],
-  Laptops: ['ThinkPad X1', 'MacBook Air', 'IdeaPad Slim', 'Vivobook 15'],
-  Headphones: ['WH-1000XM5', 'AirPods Pro', 'Buds 3 Pro', 'QuietComfort'],
-  Tablets: ['Tab S9', 'iPad Air', 'Pad 6', 'Tab P12'],
+  Phones: ['5G Smartphone 128GB', 'Smartphone 256GB'],
+  Laptops: ['Ultrabook 14', 'Notebook 15 i5'],
+  Headphones: ['Wireless Headphones', 'Noise-Cancelling Earbuds'],
+  Tablets: ['Tablet 11 WiFi', 'Tablet 10 LTE'],
   Cookware: ['Triply Saucepan', 'Cast Iron Skillet', 'Pressure Cooker 5L'],
   'Small Appliances': ['Air Fryer 4L', 'Mixer Grinder 750W', 'Kettle 1.7L'],
   Storage: ['Airtight Jar Set', 'Vacuum Container', 'Steel Lunch Box'],
   Lighting: ['LED Batten 20W', 'Smart Bulb 9W', 'Table Lamp'],
   Shirts: ['Oxford Shirt', 'Linen Kurta', 'Flannel Overshirt'],
-  Footwear: ['Air Zoom Pegasus', 'Ultraboost 22', 'Canvas Sneaker'],
+  Footwear: ['Canvas Sneaker', 'Running Shoe', 'Leather Derby'],
   Outerwear: ['Puffer Jacket', 'Denim Trucker', 'Windcheater'],
   Accessories: ['Leather Belt', 'Canvas Tote', 'Aviator Sunglasses'],
   Fiction: ['The Silent Harbour', 'Midnight in Delhi', 'Paper Boats'],
