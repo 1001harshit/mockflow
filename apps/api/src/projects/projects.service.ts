@@ -60,6 +60,24 @@ export class ProjectsService {
     return { title: parsed.title ?? null, imported: parsed.endpoints.length };
   }
 
+  /** Project detail for the dashboard header — name, slug and a few counts. */
+  async detail(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        createdAt: true,
+        workspace: { select: { id: true, name: true } },
+        _count: { select: { endpoints: true, requestLogs: true, webhooks: true } },
+      },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
   listEndpoints(projectId: string) {
     return this.prisma.endpoint.findMany({
       where: { projectId },

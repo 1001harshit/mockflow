@@ -29,6 +29,11 @@ export class ProjectsController {
     return this.projects.import(projectId, spec);
   }
 
+  @Get()
+  detail(@Param('id') projectId: string) {
+    return this.projects.detail(projectId);
+  }
+
   @Get('endpoints')
   endpoints(@Param('id') projectId: string) {
     return this.projects.listEndpoints(projectId);

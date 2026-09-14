@@ -31,12 +31,14 @@ export function FailureEditor({
   projectId,
   endpointId,
   initial,
+  endpointLabel,
   onClose,
   onSaved,
 }: {
   projectId: string;
   endpointId: string;
   initial: FailureRule[] | null;
+  endpointLabel?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -87,15 +89,41 @@ export function FailureEditor({
           alignItems: 'center',
         }}
       >
-        <strong>Failure simulation</strong>
-        <button className="btn secondary" onClick={onClose}>
+        <div>
+          <strong>Failure simulation</strong>
+          {endpointLabel && (
+            <span className="muted mono" style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}>
+              {endpointLabel}
+            </span>
+          )}
+        </div>
+        <button className="btn secondary sm" onClick={onClose}>
           Close
         </button>
       </div>
-      <p className="muted" style={{ margin: '0.4rem 0 0.8rem' }}>
+      <p className="muted" style={{ margin: '0.4rem 0 0.6rem' }}>
         One roll per request across these rules — {total}% of traffic misbehaves,{' '}
         {Math.max(0, 100 - total)}% is served normally.
       </p>
+
+      <div
+        style={{
+          display: 'flex',
+          height: 6,
+          borderRadius: 999,
+          overflow: 'hidden',
+          background: 'var(--green)',
+          marginBottom: '0.9rem',
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(total, 100)}%`,
+            background: overBudget ? 'var(--red)' : 'var(--amber)',
+            transition: 'width 0.18s ease',
+          }}
+        />
+      </div>
 
       {rules.length === 0 && (
         <p className="muted">No rules yet — this endpoint always behaves.</p>
@@ -177,8 +205,8 @@ export function FailureEditor({
           </label>
 
           <button
-            className="btn secondary"
-            style={{ padding: '0.3rem 0.6rem', marginLeft: 'auto' }}
+            className="btn danger sm"
+            style={{ marginLeft: 'auto' }}
             onClick={() => setRules(rules.filter((_, j) => j !== i))}
           >
             Remove
@@ -187,15 +215,11 @@ export function FailureEditor({
       ))}
 
       {overBudget && (
-        <div className="badge-err" style={{ margin: '0.5rem 0' }}>
+        <div className="alert error">
           Rules total {total}% — they must not exceed 100%.
         </div>
       )}
-      {error && (
-        <div className="badge-err" style={{ margin: '0.5rem 0' }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
         <button

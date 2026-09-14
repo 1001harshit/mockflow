@@ -82,13 +82,19 @@ async function req<T = unknown>(
   }
 
   if (!res.ok) {
+    // Surface the server's own words. Nest returns `message` as a string or an
+    // array of validation failures; either is far more useful to read than the
+    // raw JSON envelope this used to print.
     let detail = '';
     try {
-      detail = JSON.stringify(await res.json());
+      const body = (await res.json()) as { message?: unknown };
+      const message = body?.message;
+      if (Array.isArray(message)) detail = message.join('\n');
+      else if (typeof message === 'string') detail = message;
     } catch {
-      /* ignore */
+      /* no JSON body */
     }
-    throw new Error(`${res.status} ${res.statusText} ${detail}`);
+    throw new Error(detail || `${res.status} ${res.statusText}`);
   }
   const type = res.headers.get('content-type') ?? '';
   return (type.includes('application/json')
@@ -122,6 +128,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name }),
     }),
+  project: (pid: string) =>
+    req<{
+      id: string;
+      name: string;
+      slug: string;
+      description: string | null;
+      createdAt: string;
+      workspace: { id: string; name: string };
+      _count: { endpoints: number; requestLogs: number; webhooks: number };
+    }>(`/api/projects/${pid}`),
   endpoints: (pid: string) =>
     req<
       Array<{
@@ -146,6 +162,7 @@ export const api = {
   stats: (pid: string) =>
     req<{
       totalRequests: number;
+      sampleSize: number;
       errorRate: number;
       injectedFailures: {
         count: number;

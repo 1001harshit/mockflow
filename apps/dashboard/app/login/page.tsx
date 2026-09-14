@@ -31,48 +31,81 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 400 }}>
-      <h1 style={{ marginBottom: '0.25rem' }}>MockFlow</h1>
-      <p className="muted" style={{ marginTop: 0 }}>
-        {mode === 'login' ? 'Sign in to your workspace' : 'Create an account'}
-      </p>
-      <form onSubmit={submit} className="card grid" style={{ gap: '0.9rem' }}>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={8}
-            required
-          />
-        </label>
-        {error && <div className="badge-err">{error}</div>}
-        <button className="btn" disabled={busy}>
-          {busy ? '…' : mode === 'login' ? 'Sign in' : 'Register'}
-        </button>
-      </form>
-      <p className="muted" style={{ marginTop: '1rem' }}>
-        {mode === 'login' ? "No account? " : 'Have an account? '}
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            setMode(mode === 'login' ? 'register' : 'login');
-          }}
-        >
-          {mode === 'login' ? 'Register' : 'Sign in'}
-        </a>
-      </p>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.25rem',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <span className="brand" style={{ fontSize: '1.5rem' }}>
+            MockFlow
+          </span>
+          <p className="muted" style={{ margin: '0.45rem 0 0' }}>
+            {mode === 'login'
+              ? 'Sign in to your workspace'
+              : 'Create an account to get started'}
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="card grid" style={{ gap: '0.9rem' }}>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+              autoFocus
+            />
+          </label>
+
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={mode === 'register' ? 'At least 8 characters' : '••••••••'}
+              autoComplete={
+                mode === 'register' ? 'new-password' : 'current-password'
+              }
+              minLength={8}
+              required
+            />
+          </label>
+
+          {error && <div className="alert error">{error}</div>}
+
+          <button className="btn" disabled={busy}>
+            {busy
+              ? 'Working…'
+              : mode === 'login'
+                ? 'Sign in'
+                : 'Create account'}
+          </button>
+        </form>
+
+        <p className="muted" style={{ marginTop: '1rem', textAlign: 'center' }}>
+          {mode === 'login' ? "Don't have an account? " : 'Already registered? '}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setError(null);
+              setMode(mode === 'login' ? 'register' : 'login');
+            }}
+          >
+            {mode === 'login' ? 'Create one' : 'Sign in'}
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
