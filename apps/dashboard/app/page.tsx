@@ -161,7 +161,7 @@ export default function Home() {
                               className="arrow"
                               variants={{
                                 rest: { x: 0, color: 'var(--faint)' },
-                                hover: { x: 5, color: 'var(--p)' },
+                                hover: { x: 5, color: 'var(--a)' },
                               }}
                               transition={spring}
                             >

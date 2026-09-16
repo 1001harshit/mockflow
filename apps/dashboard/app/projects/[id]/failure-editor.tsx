@@ -113,7 +113,7 @@ export function FailureEditor({
         One roll per request across these rules —{' '}
         <motion.strong
           key={total}
-          initial={{ scale: 1.25, color: 'var(--p)' }}
+          initial={{ scale: 1.25, color: 'var(--a)' }}
           animate={{ scale: 1, color: 'var(--muted)' }}
           transition={spring}
           style={{ display: 'inline-block' }}
