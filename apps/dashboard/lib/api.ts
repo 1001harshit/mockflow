@@ -1,5 +1,14 @@
 export type FailureType = 'error' | 'slow' | 'timeout' | 'network' | 'db_down';
 
+export type WebhookProvider =
+  | 'stripe'
+  | 'github'
+  | 'slack'
+  | 'shopify'
+  | 'razorpay'
+  | 'discord'
+  | 'custom';
+
 export interface FailureRule {
   type: FailureType;
   percent: number;
@@ -183,6 +192,80 @@ export const api = {
         createdAt: string;
       }>
     >(`/api/projects/${pid}/logs?limit=${limit}`),
+  /** Fill an endpoint's stored response with believable data. */
+  generate: (
+    pid: string,
+    endpointId: string,
+    options: { count?: number; hint?: string; seed?: number; local?: boolean; save?: boolean } = {},
+  ) =>
+    req<{ source: 'openai' | 'local'; data: unknown; saved: boolean }>(
+      `/api/projects/${pid}/ai/endpoints/${endpointId}/generate`,
+      { method: 'POST', body: JSON.stringify(options) },
+    ),
+  aiStatus: (pid: string) =>
+    req<{ provider: string; configured: boolean; fallback: string }>(
+      `/api/projects/${pid}/ai/status`,
+    ),
+
+  /* ---------- webhooks ---------- */
+  webhooks: (pid: string) =>
+    req<
+      Array<{
+        id: string;
+        name: string;
+        provider: WebhookProvider;
+        targetUrl: string;
+        createdAt: string;
+        _count: { deliveries: number };
+      }>
+    >(`/api/projects/${pid}/webhooks`),
+  webhookProviders: (pid: string) =>
+    req<Array<{ provider: WebhookProvider; events: string[] }>>(
+      `/api/projects/${pid}/webhooks/providers`,
+    ),
+  createWebhook: (
+    pid: string,
+    input: { name: string; provider: WebhookProvider; targetUrl: string },
+  ) =>
+    req<{ id: string; secret: string; signatureHeader: string }>(
+      `/api/projects/${pid}/webhooks`,
+      { method: 'POST', body: JSON.stringify(input) },
+    ),
+  deleteWebhook: (pid: string, webhookId: string) =>
+    req<{ deleted: boolean }>(`/api/projects/${pid}/webhooks/${webhookId}`, {
+      method: 'DELETE',
+    }),
+  sendWebhook: (
+    pid: string,
+    webhookId: string,
+    input: { event: string; payload?: unknown; maxAttempts?: number },
+  ) =>
+    req<{
+      delivered: boolean;
+      event: string;
+      signatureHeader: string;
+      attempts: Array<{
+        attempt: number;
+        statusCode: number | null;
+        success: boolean;
+        error?: string;
+      }>;
+    }>(`/api/projects/${pid}/webhooks/${webhookId}/send`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  deliveries: (pid: string, webhookId: string, limit = 20) =>
+    req<
+      Array<{
+        id: string;
+        event: string;
+        attempt: number;
+        success: boolean;
+        statusCode: number | null;
+        createdAt: string;
+      }>
+    >(`/api/projects/${pid}/webhooks/${webhookId}/deliveries?limit=${limit}`),
+
   importSpec: (pid: string, spec: unknown) =>
     req(`/api/projects/${pid}/import`, {
       method: 'POST',

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import './globals.css';
+import { MotionProvider } from '@/components/MotionProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 
 export const metadata = {
   title: 'MockFlow',
@@ -9,7 +11,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <MotionProvider>
+          <Backdrop />
+          {children}
+        </MotionProvider>
+      </body>
     </html>
   );
 }

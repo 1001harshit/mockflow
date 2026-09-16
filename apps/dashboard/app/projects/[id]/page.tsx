@@ -2,13 +2,38 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api } from '../../../lib/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import { api } from '@/lib/api';
+import {
+  listContainer,
+  listItem,
+  rowItem,
+  spring,
+  springSnappy,
+} from '@/components/motion';
+import { Topbar } from '@/components/ui/Topbar';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
+import { Panel } from '@/components/ui/Panel';
+import { Stat, StatStrip } from '@/components/ui/Stat';
+import { SectionHead } from '@/components/ui/SectionHead';
+import { Toggle } from '@/components/ui/Toggle';
+import { GenerateDialog, type GenerateTarget } from '@/components/GenerateDialog';
+import { WebhooksPanel } from '@/components/WebhooksPanel';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { MethodBadge, Pill, StatusCode } from '@/components/ui/Badges';
+import { TopProgress } from '@/components/ui/TopProgress';
+import { ResponsePreview, type PreviewTarget } from '@/components/ResponsePreview';
 import { FailureEditor, failureSummary } from './failure-editor';
 
 type Project = Awaited<ReturnType<typeof api.project>>;
 type Endpoints = Awaited<ReturnType<typeof api.endpoints>>;
 type Stats = Awaited<ReturnType<typeof api.stats>>;
 type Logs = Awaited<ReturnType<typeof api.logs>>;
+
+const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const ms = (n: number) => `${Math.round(n)}ms`;
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -19,12 +44,17 @@ export default function ProjectPage() {
   const [logs, setLogs] = useState<Logs>([]);
   const [spec, setSpec] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
+  const [generating, setGenerating] = useState<GenerateTarget | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [preview, setPreview] = useState<PreviewTarget>(null);
 
   const load = useCallback(async () => {
+    setRefreshing(true);
     try {
       const [p, e, s, l] = await Promise.all([
         api.project(id),
@@ -39,6 +69,8 @@ export default function ProjectPage() {
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRefreshing(false);
     }
   }, [id]);
 
@@ -58,6 +90,20 @@ export default function ProjectPage() {
     }
   }
 
+  /** Flip an endpoint between a fixed response and the CRUD-backed store. */
+  async function toggleStateful(endpointId: string, next: boolean) {
+    setTogglingId(endpointId);
+    setError(null);
+    try {
+      await api.updateEndpoint(id, endpointId, { stateful: next });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   async function importSpec() {
     setError(null);
     setNotice(null);
@@ -66,9 +112,7 @@ export default function ProjectPage() {
       const parsed = JSON.parse(spec);
       const result = await api.importSpec(id, parsed);
       setSpec('');
-      setNotice(
-        `Imported ${(result as { imported: number }).imported} endpoint(s).`,
-      );
+      setNotice(`Imported ${(result as { imported: number }).imported} endpoint(s).`);
       await load();
     } catch (err) {
       setError(
@@ -83,120 +127,154 @@ export default function ProjectPage() {
     }
   }
 
-  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  /** Path params have no meaning on a mock, so a placeholder stands in. */
+  const mockUrlFor = (path: string) =>
+    `${mockBase}${path.replace(/\{[^}]+\}/g, '1')}`;
 
   return (
     <>
-      <div className="topbar">
-        <a href="/" className="brand">
-          MockFlow
-        </a>
-        <div className="topbar-actions">
-          <button className="btn secondary sm" onClick={() => void load()}>
-            Refresh
-          </button>
-        </div>
-      </div>
+      <TopProgress active={refreshing} />
+      <Topbar href="/">
+        <Button size="sm" busy={refreshing} onClick={() => void load()}>
+          <motion.span
+            aria-hidden
+            style={{ display: 'inline-block' }}
+            animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+            transition={
+              refreshing
+                ? { repeat: Infinity, duration: 0.8, ease: 'linear' }
+                : springSnappy
+            }
+          >
+            ⟳
+          </motion.span>
+          Refresh
+        </Button>
+      </Topbar>
 
-      <div className="container">
-        <p className="muted" style={{ marginTop: 0 }}>
-          <a href="/">← Workspaces</a>
-        </p>
+      <motion.div className="container" variants={listContainer}>
+        <motion.a
+          href="/"
+          className="crumb"
+          variants={listItem}
+          initial="rest"
+          animate="rest"
+          whileHover="hover"
+        >
+          <motion.span
+            variants={{ rest: { x: 0 }, hover: { x: -4 } }}
+            transition={spring}
+          >
+            ←
+          </motion.span>
+          Workspaces
+        </motion.a>
 
-        <div className="row between wrap" style={{ marginBottom: '0.3rem' }}>
-          <h2 style={{ margin: 0 }}>
-            {project ? project.name : <span className="muted">Loading…</span>}
-          </h2>
+        <motion.div className="page-head" variants={listItem}>
+          <h2>{project ? project.name : <span className="muted">Loading…</span>}</h2>
           {project && (
-            <span className="muted" style={{ fontSize: '0.82rem' }}>
+            <span className="faint" style={{ fontSize: '0.82rem' }}>
               {project.workspace.name} · {project._count.endpoints} endpoint
               {project._count.endpoints === 1 ? '' : 's'}
             </span>
           )}
+        </motion.div>
+
+        <motion.div
+          className="url-bar"
+          variants={listItem}
+          style={{ marginTop: '0.9rem' }}
+        >
+          <span>{mockBase}/…</span>
+          <div style={{ marginLeft: 'auto' }}>
+            <Button size="sm" onClick={() => void copyBase()}>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={copied ? 'copied' : 'copy'}
+                  initial={{ opacity: 0, y: 9 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -9 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ display: 'inline-block' }}
+                >
+                  {copied ? '✓ Copied' : 'Copy'}
+                </motion.span>
+              </AnimatePresence>
+            </Button>
+          </div>
+        </motion.div>
+
+        <Alert>{error}</Alert>
+        <Alert kind="ok">{notice}</Alert>
+
+        <div style={{ marginTop: '1.3rem' }}>
+          <StatStrip>
+            <Stat label="Requests" value={stats?.totalRequests} sub="all time" />
+            <Stat
+              label="Error rate"
+              value={stats?.errorRate}
+              format={pct}
+              sub={`of the last ${stats?.sampleSize ?? 0}`}
+            />
+            <Stat label="p50" value={stats?.latencyMs.p50} format={ms} sub="median latency" />
+            <Stat label="p95" value={stats?.latencyMs.p95} format={ms} sub="slowest 5%" />
+            <Stat
+              label="Injected"
+              value={stats?.injectedFailures.rate}
+              format={pct}
+              sub={
+                stats && stats.injectedFailures.count > 0
+                  ? Object.entries(stats.injectedFailures.byType)
+                      .map(([type, n]) => `${type} ${n}`)
+                      .join(' · ')
+                  : 'no chaos'
+              }
+            />
+          </StatStrip>
         </div>
 
-        <div className="url-bar" style={{ margin: '0.7rem 0 1.2rem' }}>
-          <span className="muted">{mockBase}/…</span>
-          <button
-            className="btn secondary sm"
-            style={{ marginLeft: 'auto' }}
-            onClick={() => void copyBase()}
+        <div style={{ marginTop: '1.5rem' }}>
+          <Panel
+            title="Import OpenAPI"
+            hint="JSON only · re-importing updates existing endpoints"
           >
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
-
-        {error && <div className="alert error">{error}</div>}
-        {notice && <div className="alert ok">{notice}</div>}
-
-        {/* ---------- stats ---------- */}
-        <div className="grid stat-row" style={{ margin: '0 0 1.4rem' }}>
-          <div className="card stat">
-            <div className="label">Requests</div>
-            <div className="value">{stats?.totalRequests ?? '—'}</div>
-          </div>
-          <div className="card stat">
-            <div className="label">Error rate</div>
-            <div className="value">{stats ? pct(stats.errorRate) : '—'}</div>
-            <div className="sub">of the last {stats?.sampleSize ?? 0}</div>
-          </div>
-          <div className="card stat">
-            <div className="label">p50</div>
-            <div className="value">{stats ? `${stats.latencyMs.p50}ms` : '—'}</div>
-          </div>
-          <div className="card stat">
-            <div className="label">p95</div>
-            <div className="value">{stats ? `${stats.latencyMs.p95}ms` : '—'}</div>
-          </div>
-          <div className="card stat">
-            <div className="label">Injected</div>
-            <div className="value">
-              {stats ? pct(stats.injectedFailures.rate) : '—'}
+            <textarea
+              className="code"
+              value={spec}
+              onChange={(e) => setSpec(e.target.value)}
+              placeholder='{ "openapi": "3.0.0", "info": { … }, "paths": { … } }'
+            />
+            <div className="row" style={{ marginTop: '0.7rem' }}>
+              <Button
+                variant="primary"
+                busy={importing}
+                onClick={() => void importSpec()}
+                disabled={!spec.trim()}
+              >
+                {importing ? 'Importing…' : 'Import'}
+              </Button>
+              <AnimatePresence>
+                {spec && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={springSnappy}
+                  >
+                    <Button onClick={() => setSpec('')}>Clear</Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <div className="sub">
-              {stats && stats.injectedFailures.count > 0
-                ? Object.entries(stats.injectedFailures.byType)
-                    .map(([type, n]) => `${type} ${n}`)
-                    .join(' · ')
-                : 'no chaos'}
-            </div>
-          </div>
-        </div>
-
-        {/* ---------- import ---------- */}
-        <div className="card" style={{ marginBottom: '1.4rem' }}>
-          <div className="row between">
-            <strong>Import OpenAPI</strong>
-            <span className="muted" style={{ fontSize: '0.78rem' }}>
-              JSON only · re-importing updates existing endpoints
-            </span>
-          </div>
-          <textarea
-            className="code"
-            value={spec}
-            onChange={(e) => setSpec(e.target.value)}
-            placeholder='{ "openapi": "3.0.0", "info": { … }, "paths": { … } }'
-            style={{ marginTop: '0.6rem' }}
-          />
-          <div className="row" style={{ marginTop: '0.6rem' }}>
-            <button
-              className="btn"
-              onClick={() => void importSpec()}
-              disabled={importing || !spec.trim()}
-            >
-              {importing ? 'Importing…' : 'Import'}
-            </button>
-            {spec && (
-              <button className="btn secondary" onClick={() => setSpec('')}>
-                Clear
-              </button>
-            )}
-          </div>
+          </Panel>
         </div>
 
         {/* ---------- endpoints ---------- */}
-        <h3>Endpoints</h3>
-        <div className="card pad-0" style={{ marginBottom: '1.4rem' }}>
+        <SectionHead
+          title="Endpoints"
+          count={endpoints ? `${endpoints.length} total` : undefined}
+        />
+        <Card flush layout>
           <div className="table-wrap">
             <table>
               <thead>
@@ -210,81 +288,119 @@ export default function ProjectPage() {
                 </tr>
               </thead>
               <tbody>
-                {endpoints?.map((e) => (
-                  <tr key={e.id}>
-                    <td>
-                      <span className={`method ${e.method}`}>{e.method}</span>
-                    </td>
-                    <td className="mono">{e.path}</td>
-                    <td>{e.responses[0]?.statusCode ?? '—'}</td>
-                    <td>
-                      <span className={`pill ${e.stateful ? 'ok' : ''}`}>
-                        {e.stateful ? 'stateful' : 'static'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className={`btn sm ${
-                          (e.failureRules ?? []).length ? 'danger' : 'secondary'
-                        }`}
-                        onClick={() =>
-                          setEditing(editing === e.id ? null : e.id)
-                        }
-                      >
-                        {failureSummary(e.failureRules)}
-                      </button>
-                    </td>
-                    <td>
-                      <a
-                        href={`${mockBase}${e.path.replace(/\{[^}]+\}/g, '1')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        open ↗
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                <AnimatePresence initial={false}>
+                  {endpoints?.map((e, i) => (
+                    <motion.tr
+                      key={e.id}
+                      custom={i}
+                      variants={rowItem}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      whileHover={{ backgroundColor: 'rgba(255,255,255,0.028)' }}
+                      whileTap={{ scale: 0.998 }}
+                    >
+                      <td>
+                        <MethodBadge
+                          method={e.method}
+                          layoutId={`method-${e.id}`}
+                          dimmed={preview?.id === e.id}
+                        />
+                      </td>
+                      <td className="mono">{e.path}</td>
+                      <td>
+                        <StatusCode code={e.responses[0]?.statusCode} />
+                      </td>
+                      <td>
+                        <div className="row" style={{ gap: '0.5rem' }}>
+                          <Toggle
+                            on={e.stateful}
+                            busy={togglingId === e.id}
+                            label={`Stateful mode for ${e.method} ${e.path}`}
+                            onChange={(next) => void toggleStateful(e.id, next)}
+                          />
+                          <span className={e.stateful ? '' : 'faint'} style={{ fontSize: '0.79rem' }}>
+                            {e.stateful ? 'stateful' : 'static'}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <Button
+                          size="sm"
+                          variant={(e.failureRules ?? []).length ? 'chaos' : 'ghost'}
+                          onClick={() => setEditing(editing === e.id ? null : e.id)}
+                        >
+                          {failureSummary(e.failureRules)}
+                        </Button>
+                      </td>
+                      <td>
+                        <div className="row" style={{ gap: '0.35rem' }}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setGenerating({ id: e.id, method: e.method, path: e.path })
+                            }
+                          >
+                            Generate
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setPreview({
+                                id: e.id,
+                                method: e.method,
+                                path: e.path,
+                                url: mockUrlFor(e.path),
+                              })
+                            }
+                          >
+                            open ↗
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
                 {endpoints?.length === 0 && (
                   <tr>
                     <td colSpan={6}>
-                      <div className="empty">
-                        <strong>No endpoints yet</strong>
-                        Paste an OpenAPI document above and they appear here,
-                        live immediately.
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {!endpoints && (
-                  <tr>
-                    <td colSpan={6}>
-                      <div className="skeleton" style={{ margin: '0.6rem 0' }} />
+                      <EmptyState title="No endpoints yet">
+                        Paste an OpenAPI document above and they appear here, live
+                        immediately.
+                      </EmptyState>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
 
-        {editing && (
-          <FailureEditor
-            projectId={id}
-            endpointId={editing}
-            initial={endpoints?.find((e) => e.id === editing)?.failureRules ?? []}
-            endpointLabel={(() => {
-              const e = endpoints?.find((x) => x.id === editing);
-              return e ? `${e.method} ${e.path}` : undefined;
-            })()}
-            onClose={() => setEditing(null)}
-            onSaved={() => void load()}
-          />
-        )}
+        <AnimatePresence>
+          {editing && (
+            <FailureEditor
+              key={editing}
+              projectId={id}
+              endpointId={editing}
+              initial={endpoints?.find((e) => e.id === editing)?.failureRules ?? []}
+              endpointLabel={(() => {
+                const e = endpoints?.find((x) => x.id === editing);
+                return e ? `${e.method} ${e.path}` : undefined;
+              })()}
+              onClose={() => setEditing(null)}
+              onSaved={() => void load()}
+            />
+          )}
+        </AnimatePresence>
 
         {/* ---------- logs ---------- */}
-        <h3>Recent requests</h3>
-        <div className="card pad-0">
+        <SectionHead
+          title="Recent requests"
+          count={logs.length > 0 ? `last ${logs.length}` : undefined}
+        />
+        <Card flush layout>
           <div className="table-wrap">
             <table>
               <thead>
@@ -297,40 +413,62 @@ export default function ProjectPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((l) => (
-                  <tr key={l.id}>
-                    <td>
-                      <span className={`method ${l.method}`}>{l.method}</span>
-                    </td>
-                    <td className="mono">{l.path}</td>
-                    <td className={l.statusCode >= 400 ? 'badge-err' : 'badge-ok'}>
-                      {l.statusCode === 0 ? 'dropped' : l.statusCode}
-                    </td>
-                    <td>{l.latencyMs}ms</td>
-                    <td>
-                      {l.failureType ? (
-                        <span className="pill on">{l.failureType}</span>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                <AnimatePresence initial={false}>
+                  {logs.map((l, i) => (
+                    <motion.tr
+                      key={l.id}
+                      custom={i}
+                      variants={rowItem}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      whileHover={{ backgroundColor: 'rgba(255,255,255,0.028)' }}
+                      whileTap={{ scale: 0.998 }}
+                    >
+                      <td>
+                        <MethodBadge method={l.method} />
+                      </td>
+                      <td className="mono">{l.path}</td>
+                      <td>
+                        <StatusCode code={l.statusCode} />
+                      </td>
+                      <td className="num">{l.latencyMs}ms</td>
+                      <td>
+                        {l.failureType ? (
+                          <Pill tone="on">{l.failureType}</Pill>
+                        ) : (
+                          <span className="faint">—</span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
                 {logs.length === 0 && (
                   <tr>
                     <td colSpan={5}>
-                      <div className="empty">
-                        <strong>No requests yet</strong>
+                      <EmptyState title="No requests yet">
                         Call a mock URL above and it shows up here.
-                      </div>
+                      </EmptyState>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+        </Card>
+        <GenerateDialog
+          projectId={id}
+          target={generating}
+          onClose={() => setGenerating(null)}
+          onSaved={() => void load()}
+        />
+
+        <ResponsePreview target={preview} onClose={() => setPreview(null)} />
+        <div style={{ marginTop: '2rem' }}>
+          <WebhooksPanel projectId={id} />
         </div>
-      </div>
+
+      </motion.div>
     </>
   );
 }
