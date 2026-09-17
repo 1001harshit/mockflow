@@ -1,8 +1,9 @@
 'use strict';
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const servers = require('./servers');
 const { failurePage } = require('./failure-page');
+const { buildMenu } = require('./menu');
 
 /**
  * MockFlow desktop shell.
@@ -37,6 +38,12 @@ function createWindow() {
   // Painting an empty window and then filling it reads as a stall; waiting for
   // the first frame makes the launch feel deliberate instead.
   window.once('ready-to-show', () => window.show());
+
+  // A window with no address bar is a bad place to land on an external site.
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url);
+    return { action: 'deny' };
+  });
   window.on('closed', () => {
     window = null;
   });
@@ -46,6 +53,7 @@ function createWindow() {
 
 async function boot() {
   const win = createWindow();
+  buildMenu({ getRunning: () => running });
 
   fatalHandler = (err) => {
     // A child dying after startup is still worth saying out loud.
