@@ -49,8 +49,12 @@ async function boot() {
 
   fatalHandler = (err) => {
     // A child dying after startup is still worth saying out loud.
-    if (window && !window.isDestroyed()) window.loadURL(failurePage(err.message));
+    if (window && !window.isDestroyed()) void window.loadURL(failurePage(err.message));
   };
+
+  // Starting the servers takes a couple of seconds, and the window can be
+  // closed inside that gap — every use of it after an await has to re-check.
+  const alive = () => !win.isDestroyed();
 
   try {
     running = await servers.start({
@@ -58,9 +62,13 @@ async function boot() {
       userDataPath: app.getPath('userData'),
       onFatal: (err) => fatalHandler && fatalHandler(err),
     });
+    if (!alive()) {
+      running.stop();
+      return;
+    }
     await win.loadURL(running.url);
   } catch (err) {
-    await win.loadURL(failurePage(err.message));
+    if (alive()) await win.loadURL(failurePage(err.message));
   }
 }
 

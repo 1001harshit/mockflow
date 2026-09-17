@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process');
 const { join } = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { freePort, waitForHttp } = require('./ports');
+const { migrate } = require('./migrate');
 
 /**
  * Starts the API and the dashboard as child processes and keeps hold of them.
@@ -47,6 +48,9 @@ async function start({ appPath, userDataPath, onFatal }) {
 
   const env = {
     ...process.env,
+    // These children are spawned with process.execPath, which under Electron
+    // is the Electron binary. This makes it behave as plain Node.
+    ELECTRON_RUN_AS_NODE: '1',
     NODE_ENV: 'production',
     DATABASE_URL: databaseUrl,
     PORT: String(apiPort),
@@ -59,6 +63,10 @@ async function start({ appPath, userDataPath, onFatal }) {
     NEXT_PUBLIC_API_URL: `http://127.0.0.1:${apiPort}`,
   };
 
+  // Migrate before anything connects: the API would otherwise open an empty
+  // file and fail on its first query.
+  await migrate({ root, databaseUrl });
+
   const api = startProcess(
     'api',
     process.execPath,
@@ -67,18 +75,16 @@ async function start({ appPath, userDataPath, onFatal }) {
     onFatal,
   );
 
+  // pnpm does not hoist dependencies to the root, so Next lives under the
+  // dashboard package. Resolve it rather than guessing at a layout.
+  const dashboardDir = join(root, 'apps', 'dashboard');
+  const nextBin = require.resolve('next/dist/bin/next', { paths: [dashboardDir] });
+
   const web = startProcess(
     'web',
     process.execPath,
-    [
-      join(root, 'node_modules', 'next', 'dist', 'bin', 'next'),
-      'start',
-      '--port',
-      String(webPort),
-      '--hostname',
-      '127.0.0.1',
-    ],
-    { cwd: join(root, 'apps', 'dashboard'), env },
+    [nextBin, 'start', '--port', String(webPort), '--hostname', '127.0.0.1'],
+    { cwd: dashboardDir, env },
     onFatal,
   );
 
