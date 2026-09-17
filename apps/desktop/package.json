@@ -7,13 +7,10 @@
   "scripts": {
     "start": "electron .",
     "lint": "echo \"no lint\"",
-    "typecheck": "echo \"no typecheck\"",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "typecheck": "echo \"no typecheck\""
   },
   "devDependencies": {
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^33.2.0"
   },
   "build": {
     "appId": "dev.mockflow.desktop",

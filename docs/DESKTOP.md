@@ -57,8 +57,14 @@ otherwise entirely Node, that is a poor trade. See
 
 ## Packaging — not finished
 
-`pnpm --filter @mockflow/desktop pack` is configured but does not yet produce
-a distributable application.
+The `build` block in `apps/desktop/package.json` describes the bundle, but
+electron-builder is deliberately **not** installed yet.
+
+It was, briefly. Adding it broke every `pnpm` script in the repo: pnpm checks
+dependencies before running any script, and electron-builder pulls
+`app-builder-bin`, whose download failed and retried until `pnpm test` hung
+instead of finishing in seconds. A dependency that cannot package anything yet
+is not worth that, so it comes back when packaging is actually tackled.
 
 The obstacle is dependencies, not configuration. The shell runs the real API
 and the real dashboard, so a packaged app has to carry their `node_modules`
@@ -66,7 +72,9 @@ too — including Prisma's platform-specific query engine and Next's server
 runtime. pnpm stores those as symlinks into a content-addressed store, which
 does not survive being copied into a bundle.
 
-Finishing it means resolving that: either deploying the API and dashboard with
-their dependencies flattened first, or bundling each into a single file. Until
-then, `pnpm desktop` runs the app properly from a built checkout, which is
-enough for development and for a demo.
+Finishing it means resolving that first: either deploying the API and
+dashboard with their dependencies flattened, or bundling each server into a
+single file. Only then is electron-builder worth adding back.
+
+Until then, `pnpm desktop` runs the app properly from a built checkout, which
+is enough for development and for a demo.
