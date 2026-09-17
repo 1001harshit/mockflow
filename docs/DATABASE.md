@@ -1,6 +1,10 @@
 # Database
 
-PostgreSQL via Prisma. Source of truth: `apps/api/prisma/schema.prisma`.
+SQLite via Prisma. Source of truth: `apps/api/prisma/schema.prisma`.
+
+One file, no server. WAL and a busy timeout are set on connect (see
+`PrismaService`) because the mock plane writes a log row per request, and the
+rollback journal SQLite defaults to would put that write in the way of reads.
 
 ## Entities
 
@@ -47,7 +51,7 @@ Workspace ─┬─< Membership >─ User
 ## Migrations
 
 ```bash
-pnpm db:up            # start postgres + redis
+pnpm db:migrate       # create/upgrade the SQLite file
 pnpm db:generate      # prisma generate
 pnpm db:migrate       # prisma migrate dev
 ```

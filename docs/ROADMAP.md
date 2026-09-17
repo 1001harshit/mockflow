@@ -17,7 +17,7 @@
 
 ## Current status
 
-Complete. Every phase shipped and was verified against a live Postgres.
+Complete. Every phase shipped and was verified against a live database.
 
 - [x] **Phase 0** — scaffold + docs + schema
 - [x] **Phase 1** — auth
@@ -36,7 +36,10 @@ Complete. Every phase shipped and was verified against a live Postgres.
   collection importer yet. `$ref` resolution is one hop deep.
 - **Response variants.** One default response per endpoint; the `Response`
   table supports more, but nothing selects between them yet.
-- **Queueing.** Webhook delivery and generation run inline. BullMQ is in the
-  stack for when fan-out justifies it.
+- **Queueing.** Webhook delivery and generation run inline. A queue is the
+  right answer once fan-out justifies it.
+- **One writer.** SQLite means a single API process. That suits a self-hosted
+  tool and a desktop app; running several instances behind a load balancer
+  would mean moving back to a networked database.
 - **Dashboard coverage.** Failure rules are editable in the UI; webhooks and
   generation are API- and CLI-only so far.

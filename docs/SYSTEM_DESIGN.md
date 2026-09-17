@@ -13,9 +13,9 @@
 
 - **NestJS + Fastify adapter** — module-per-domain matches the phase breakdown;
   Fastify keeps the hot mock-serving path fast.
-- **Prisma + PostgreSQL** — type-safe schema, easy migrations.
-- **Redis** does triple duty: cache, rate limiting, and the stateful store.
-- **BullMQ** for anything slow/retryable (webhook delivery, AI jobs) so the
+- **Prisma + SQLite** — type-safe schema, easy migrations, and a single file
+  that the desktop build can ship as-is.
+- Slow/retryable work (webhook delivery, AI jobs) runs inline today, so the
   request path stays synchronous and fast.
 - **Monorepo (pnpm + Turborepo)** — API, dashboard, SDK, CLI share types via
   `@mockflow/shared-types`.
@@ -36,7 +36,7 @@ Parser → Validator → Schema Generator → Route Generator → Response Gener
 ## Stateful APIs (Phase 4)
 
 `POST /user` stores → `GET /users` lists it → `GET /users/:id` fetches →
-`DELETE /users/:id` removes it. Backed by Redis (hot) with Postgres fallback.
+`DELETE /users/:id` removes it. Backed by the `state_records` table.
 Supports pagination, sorting, filtering/search.
 
 ## Failure simulation (Phase 5)
@@ -58,7 +58,7 @@ Evaluated per request before the response is produced.
 OpenAI turns a schema into *coherent* data (categories, relationships,
 realistic prices/stock) — not random noise. Also generates examples,
 validation rules, descriptions, and test cases from an uploaded API. Runs as
-async BullMQ jobs (`AiJob`).
+jobs tracked in `AiJob`.
 
 ## Non-goals (for now)
 

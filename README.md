@@ -12,13 +12,11 @@ Postman Mock Server + Beeceptor + Mockoon + Prism + WireMock — made smarter.
 |------------------|----------------------------------------------------|-----|
 | Language         | TypeScript (strict)                                | One language across API, dashboard, SDK, CLI |
 | Backend          | **NestJS** (Fastify adapter)                       | Module-per-domain maps 1:1 to phases; DI, guards, queues built in |
-| ORM / DB         | **Prisma** + PostgreSQL                            | Type-safe client, declarative migrations |
-| Cache / Queue    | Redis + **BullMQ**                                 | Rate limits, stateful store, webhook + AI job queues |
+| ORM / DB         | **Prisma** + SQLite                                | Type-safe client, declarative migrations, and a single file means no server to run or ship |
 | Dashboard        | **Next.js** (App Router) + React + Tailwind        | SSR, shared types with API |
 | AI               | **OpenAI API** (ChatGPT / GPT models — capable model for quality, mini model for bulk) | Realistic data generation, example/test synthesis |
 | Repo             | **pnpm workspaces + Turborepo**                    | One repo, shared packages, cached builds |
 | Auth             | JWT (access + refresh) + API keys                  | Dashboard sessions + programmatic access |
-| Infra (dev)      | Docker Compose (Postgres, Redis)                   | One-command local stack |
 | Testing          | Vitest / Jest + Supertest + Playwright             | Unit, integration, e2e |
 
 ---
@@ -51,13 +49,12 @@ mockflow/
     shared-types/        # types shared API <-> dashboard <-> sdk <-> cli
   docs/                  # ARCHITECTURE, SYSTEM_DESIGN, DATABASE, API_SPEC,
                          # ROADMAP, FAILURE_SIMULATION
-  docker-compose.yml     # postgres + redis for local dev
   turbo.json
   pnpm-workspace.yaml
 ```
 
-> Redis and BullMQ are in the stack for queued fan-out; webhook delivery and
-> generation currently run inline, which is called out in the roadmap's gaps.
+> One SQLite file holds everything, so the same build runs as a local web app
+> or inside a desktop shell with nothing to install alongside it.
 
 ---
 
@@ -79,7 +76,7 @@ mockflow/
       │       Stateful  Failure    │            │
       │        Store    Sim        │            │
       ▼           ▼       ▼         ▼            ▼
-  PostgreSQL ◄────────── Redis (cache + state) ──► BullMQ Queues
+                      SQLite (one file)
                                                        │
                                               Webhook / AI Workers
 ```
@@ -110,11 +107,11 @@ Tables: `users, workspaces, memberships, projects, endpoints, responses, collect
 
 | Phase | Duration | Goal | Key Deliverables |
 |-------|----------|------|------------------|
-| **0** | 1 wk  | Research & Design | Monorepo scaffold, Docker stack, all `docs/*.md`, Prisma schema draft |
+| **0** | 1 wk  | Research & Design | Monorepo scaffold, all `docs/*.md`, Prisma schema draft |
 | **1** | 2 wk  | Core Backend / Auth | Workspaces, projects, users, roles; JWT + refresh + API keys |
 | **2** | 2 wk  | Mock Engine | Parser (OpenAPI/Swagger/Postman) → internal model → dynamic routes serving mock responses |
 | **3** | 2 wk  | Dashboard | Projects, endpoints, live requests, latency, errors, logs (Vercel-style) |
-| **4** | 2 wk  | Stateful APIs | Real CRUD store, pagination, sorting, search backed by Redis/Postgres |
+| **4** | 2 wk  | Stateful APIs | Real CRUD store, pagination, sorting, search |
 | **5** | 2 wk  | Failure Simulation | Per-endpoint % rules: 500s, slow responses, timeouts, network/db failures |
 | **6** | 2 wk  | AI Generation | OpenAI-powered realistic data, relationships, examples, validation rules, test cases |
 | **7** | 2 wk  | Webhooks | Simulate Stripe/GitHub/Slack/Discord/Shopify/Razorpay: send, retry, sign, log |
@@ -142,9 +139,9 @@ Tables: `users, workspaces, memberships, projects, endpoints, responses, collect
 
 ## 7. Current Status
 
-All ten phases are implemented and verified against a live Postgres.
+All ten phases are implemented and verified against a live database.
 
-- [x] **Phase 0** — monorepo scaffold, Docker stack, docs, Prisma schema
+- [x] **Phase 0** — monorepo scaffold, docs, Prisma schema
 - [x] **Phase 1** — auth: register/login/refresh, workspaces, roles, API keys
 - [x] **Phase 2** — mock engine: spec import, live mock plane, request logging
 - [x] **Phase 3** — dashboard: projects, endpoints, stats, logs, spec import
@@ -162,14 +159,13 @@ All ten phases are implemented and verified against a live Postgres.
 ```bash
 pnpm install
 cp .env.example .env                        # then edit if you want an OpenAI key
-pnpm db:up                                  # Postgres + Redis via Docker
-pnpm db:migrate                             # apply migrations
+pnpm db:migrate                             # creates the SQLite file
 pnpm dev                                    # API :4000, dashboard :3000
 ```
 
-Open <http://localhost:3000> and register. Everything reads the one `.env` at
-the repo root, so there is nothing to export by hand. `pnpm db:down` stops the
-containers when you're done.
+Open <http://localhost:3000> and register. No database server, no Docker — the
+data lives in one SQLite file, and everything reads the single `.env` at the
+repo root, so there is nothing to export by hand.
 
 Then, in the dashboard or over the API: register, create a project, import an
 OpenAPI document, and the endpoints serve immediately at
@@ -204,7 +200,7 @@ await project.generate(endpointId, { count: 20, save: true });
 
 ## 9. What makes it different
 
-- **Self-hosted.** Your specs and traffic stay on your own Postgres.
+- **Self-hosted.** Your specs and traffic stay in a SQLite file you own.
 - **Stateful.** `POST /users` then `GET /users` returns what you posted —
   with `q`, `_sort`, `_page` and `_limit` on the list.
 - **Chaos by rule.** Per-endpoint percentages of errors, latency, timeouts,

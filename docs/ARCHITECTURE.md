@@ -19,7 +19,7 @@ and shared SDK/CLI packages.
       │       Stateful  Failure    │            │
       │        Store    Sim        │            │
       ▼           ▼       ▼         ▼            ▼
-  PostgreSQL ◄────────── Redis (cache + state) ──► BullMQ Queues
+                      SQLite (one file)
                                                        │
                                               Webhook / AI Workers
 ```
@@ -37,8 +37,6 @@ and shared SDK/CLI packages.
 | `ai`       | OpenAI-backed data/example/test generation                 | 6 |
 | `webhook`  | Outbound webhook simulation (sign, retry, log)             | 7 |
 | `storage`  | Persistence services (Prisma wrappers)                     | 1+ |
-| `cache`    | Redis wrappers                                             | 4+ |
-| `workers`  | BullMQ processors (webhooks, AI jobs)                       | 6+ |
 | `common`   | Guards, interceptors, filters, decorators                  | 1+ |
 
 ## Request flow (a mocked call)
@@ -54,8 +52,9 @@ incoming request
 
 ## Data stores
 
-- **PostgreSQL** — source of truth (projects, endpoints, users, logs...).
-- **Redis** — cache, rate limits, and the stateful CRUD store's hot data.
-- **BullMQ** (on Redis) — async queues for webhook delivery and AI jobs.
+- **SQLite** — source of truth (projects, endpoints, users, logs...), in one
+  file, so there is no database server to run locally or ship in the app.
+- Webhook delivery and generation run inline; a queue is the right answer
+  only once fan-out justifies one.
 
 See `SYSTEM_DESIGN.md` for deeper design decisions and `DATABASE.md` for the schema.
