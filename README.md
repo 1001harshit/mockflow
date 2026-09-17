@@ -43,6 +43,7 @@ mockflow/
         prisma/          # PrismaModule / PrismaService
         common/          # decorators, hashing, slug helpers
     dashboard/           # Next.js UI
+    desktop/             # Electron shell — runs the API + dashboard in a window
   packages/
     sdk/                 # @mockflow/sdk (TS client)
     cli/                 # mockflow CLI (init/deploy/start/export/logs/chaos)
@@ -156,6 +157,10 @@ All ten phases are implemented and verified against a live database.
 
 ## 8. Quickstart
 
+MockFlow runs two ways from one codebase.
+
+**As a web app** — a shared URL your whole team and your CI can point at:
+
 ```bash
 pnpm install
 cp .env.example .env                        # then edit if you want an OpenAI key
@@ -166,6 +171,20 @@ pnpm dev                                    # API :4000, dashboard :3000
 Open <http://localhost:3000> and register. No database server, no Docker — the
 data lives in one SQLite file, and everything reads the single `.env` at the
 repo root, so there is nothing to export by hand.
+
+**As a desktop app** — your own mock server, no terminal left open:
+
+```bash
+pnpm build
+pnpm desktop
+```
+
+The shell starts the same API and dashboard on ports the OS hands out, applies
+migrations, and opens a window once both answer. Your data lives in the
+platform's application-data directory. See [docs/DESKTOP.md](docs/DESKTOP.md).
+
+> The desktop build is not a fork. It runs the same two servers the web build
+> runs, so a fix to one is a fix to both.
 
 Then, in the dashboard or over the API: register, create a project, import an
 OpenAPI document, and the endpoints serve immediately at
@@ -214,4 +233,7 @@ await project.generate(endpointId, { count: 20, save: true });
   you ship is the code that gets exercised.
 
 See [docs/FAILURE_SIMULATION.md](docs/FAILURE_SIMULATION.md) for the failure
-rules and [docs/API_SPEC.md](docs/API_SPEC.md) for the full API surface.
+rules, [docs/API_SPEC.md](docs/API_SPEC.md) for the full API surface,
+[docs/DESKTOP.md](docs/DESKTOP.md) for the desktop build, and
+[docs/DECISIONS.md](docs/DECISIONS.md) for why the project moved from
+web-only to web and desktop — including what that cost.
