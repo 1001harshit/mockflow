@@ -1,6 +1,8 @@
 'use strict';
 
 const { app, BrowserWindow } = require('electron');
+const servers = require('./servers');
+const { failurePage } = require('./failure-page');
 
 /**
  * MockFlow desktop shell.
@@ -11,6 +13,9 @@ const { app, BrowserWindow } = require('electron');
  */
 
 let window = null;
+let running = null;
+/** Cleared before a deliberate shutdown, so quitting isn't reported as a crash. */
+let fatalHandler = null;
 
 function createWindow() {
   window = new BrowserWindow({
@@ -39,12 +44,36 @@ function createWindow() {
   return window;
 }
 
-app.whenReady().then(() => {
-  createWindow();
+async function boot() {
+  const win = createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  fatalHandler = (err) => {
+    // A child dying after startup is still worth saying out loud.
+    if (window && !window.isDestroyed()) window.loadURL(failurePage(err.message));
+  };
+
+  try {
+    running = await servers.start({
+      appPath: app.getAppPath(),
+      userDataPath: app.getPath('userData'),
+      onFatal: (err) => fatalHandler && fatalHandler(err),
+    });
+    await win.loadURL(running.url);
+  } catch (err) {
+    await win.loadURL(failurePage(err.message));
+  }
+}
+
+app.whenReady().then(boot);
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) void boot();
+});
+
+// Stop supervising before the children go, or their exit reads as a crash.
+app.on('before-quit', () => {
+  fatalHandler = null;
+  if (running) running.stop();
 });
 
 // macOS keeps applications running with no windows; everywhere else, closing
