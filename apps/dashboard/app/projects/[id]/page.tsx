@@ -274,7 +274,7 @@ export default function ProjectPage() {
           title="Endpoints"
           count={endpoints ? `${endpoints.length} total` : undefined}
         />
-        <Card flush layout>
+        <Card flush>
           <div className="table-wrap">
             <table>
               <thead>
@@ -400,7 +400,7 @@ export default function ProjectPage() {
           title="Recent requests"
           count={logs.length > 0 ? `last ${logs.length}` : undefined}
         />
-        <Card flush layout>
+        <Card flush>
           <div className="table-wrap">
             <table>
               <thead>

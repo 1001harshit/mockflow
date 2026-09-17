@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="c" gradientUnits="userSpaceOnUse" x1="120" y1="112" x2="392" y2="400">
+      <stop offset="0" stop-color="#f0a52a"/><stop offset="1" stop-color="#f2683c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#0b0a09"/>
+  <!-- JSON braces around a bolt: a response, and the fault you put inside it -->
+  <g fill="none" stroke="url(#c)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M198 116 C154 116 154 178 154 210 C154 242 122 256 122 256 C122 256 154 270 154 302 C154 334 154 396 198 396"/>
+    <path d="M314 116 C358 116 358 178 358 210 C358 242 390 256 390 256 C390 256 358 270 358 302 C358 334 358 396 314 396"/>
+  </g>
+  <path d="M286 146 L212 268 H252 L226 366 L300 244 H260 Z" fill="#f2683c"/>
+</svg>

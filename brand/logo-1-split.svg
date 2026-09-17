@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- userSpaceOnUse: a horizontal path has a zero-height bounding box, and an
+         objectBoundingBox gradient collapses to nothing on one. -->
+    <linearGradient id="a" gradientUnits="userSpaceOnUse" x1="96" y1="150" x2="416" y2="362">
+      <stop offset="0" stop-color="#f0a52a"/><stop offset="1" stop-color="#f2683c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#0b0a09"/>
+  <!-- one request in; served one way, deliberately broken the other -->
+  <g fill="none" stroke-linecap="round" stroke-width="32">
+    <path d="M96 256 H186" stroke="url(#a)"/>
+    <path d="M186 256 C242 256 236 154 292 154 H416" stroke="url(#a)"/>
+    <path d="M186 256 C242 256 236 358 292 358 H330" stroke="#5f4c3b"/>
+    <path d="M378 358 H416" stroke="#5f4c3b"/>
+  </g>
+  <circle cx="186" cy="256" r="21" fill="#0b0a09" stroke="#f0a52a" stroke-width="16"/>
+</svg>

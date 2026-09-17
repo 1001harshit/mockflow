@@ -108,8 +108,12 @@ h2 {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(96px);
+  filter: blur(80px);
   opacity: 0.42;
+  /* Promote to its own layer so the blur is rasterised once and the drift is
+     a composite step rather than a repaint. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 .blob-a {
   width: 620px;
@@ -146,7 +150,7 @@ h2 {
   z-index: 30;
   border-bottom: 1px solid var(--border);
   background: rgba(11, 10, 9, 0.74);
-  backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(130%);
 }
 .topbar-inner {
   max-width: var(--page);
