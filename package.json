@@ -16,7 +16,8 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "pnpm --filter @mockflow/api prisma:generate",
-    "db:migrate": "pnpm --filter @mockflow/api prisma:migrate"
+    "db:migrate": "pnpm --filter @mockflow/api prisma:migrate",
+    "db:sqlite": "pnpm --filter @mockflow/api db:sqlite:push && pnpm --filter @mockflow/api db:sqlite:generate"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

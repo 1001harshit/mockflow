@@ -11,7 +11,10 @@
     "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:sqlite:sync": "node prisma/make-sqlite-schema.mjs",
+    "db:sqlite:push": "node prisma/make-sqlite-schema.mjs && prisma db push --schema prisma/sqlite/schema.prisma --skip-generate",
+    "db:sqlite:generate": "node prisma/make-sqlite-schema.mjs && prisma generate --schema prisma/sqlite/schema.prisma"
   },
   "dependencies": {
     "@mockflow/shared-types": "workspace:*",

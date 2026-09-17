@@ -4,7 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { DatabaseClient, databaseKind } from './client';
 
 /**
  * Thin wrapper around PrismaClient that ties the DB connection lifecycle to
@@ -12,14 +12,14 @@ import { PrismaClient } from '@prisma/client';
  */
 @Injectable()
 export class PrismaService
-  extends PrismaClient
+  extends DatabaseClient
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
-    this.logger.log('Connected to database');
+    this.logger.log(`Connected to database (${databaseKind})`);
   }
 
   async onModuleDestroy(): Promise<void> {
