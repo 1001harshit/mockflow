@@ -30,6 +30,16 @@ Complete. Every phase shipped and was verified against a live database.
 - [x] **Phase 8** — SDK & CLI
 - [x] **Phase 9** — tests & docs
 
+### Beyond the ten phases
+
+- [x] **One database** — SQLite everywhere, Postgres and Docker retired
+      (see [DECISIONS.md](DECISIONS.md) for the benchmark that decided it)
+- [x] **Desktop build** — an Electron shell that runs the same API and
+      dashboard in a window (see [DESKTOP.md](DESKTOP.md))
+- [ ] **A distributable app** — packaging is configured but unfinished; the
+      bundle has to carry the API and dashboard dependencies, and pnpm's
+      symlinks into a content-addressed store do not survive being copied
+
 ### Known gaps, worth picking up next
 
 - **Spec formats.** OpenAPI/Swagger JSON only — no YAML, and no Postman

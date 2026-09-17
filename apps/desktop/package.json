@@ -7,9 +7,65 @@
   "scripts": {
     "start": "electron .",
     "lint": "echo \"no lint\"",
-    "typecheck": "echo \"no typecheck\""
+    "typecheck": "echo \"no typecheck\"",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "devDependencies": {
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "dev.mockflow.desktop",
+    "productName": "MockFlow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../api/dist",
+        "to": "app/apps/api/dist"
+      },
+      {
+        "from": "../api/prisma",
+        "to": "app/apps/api/prisma"
+      },
+      {
+        "from": "../dashboard/.next",
+        "to": "app/apps/dashboard/.next"
+      },
+      {
+        "from": "../dashboard/public",
+        "to": "app/apps/dashboard/public",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../dashboard/package.json",
+        "to": "app/apps/dashboard/package.json"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dir"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }
