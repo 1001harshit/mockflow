@@ -31,3 +31,4 @@ coverage/
 .DS_Store
 Thumbs.db
 apps/api/generated/
+prisma/sqlite/
