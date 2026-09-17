@@ -1,0 +1,15 @@
+{
+  "name": "@mockflow/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MockFlow as a desktop application",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "lint": "echo \"no lint\"",
+    "typecheck": "echo \"no typecheck\""
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

@@ -15,7 +15,8 @@
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @mockflow/api prisma:generate",
     "db:migrate": "pnpm --filter @mockflow/api prisma:migrate",
-    "db:reset": "pnpm --filter @mockflow/api exec prisma migrate reset --force"
+    "db:reset": "pnpm --filter @mockflow/api exec prisma migrate reset --force",
+    "desktop": "pnpm --filter @mockflow/desktop start"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
