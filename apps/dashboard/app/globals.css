@@ -174,12 +174,17 @@ h2 {
   color: var(--text);
 }
 .brand-mark {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 6px;
+  /* The real mark, not a coloured square. Kept as a background so the element
+     stays a plain box that framer-motion can rotate on hover. */
   background: var(--grad);
-  box-shadow: var(--glow), 0 0 0 1px rgba(255, 255, 255, 0.09) inset;
+  -webkit-mask: url('/logo-mark.svg') center / contain no-repeat;
+  mask: url('/logo-mark.svg') center / contain no-repeat;
+  box-shadow: none;
   display: inline-block;
+  flex: none;
 }
 .topbar-actions {
   display: flex;

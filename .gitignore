@@ -38,3 +38,6 @@ prisma/sqlite/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# locally built launcher bundle
+dist-app/

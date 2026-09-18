@@ -13,9 +13,15 @@ const { migrate } = require('./migrate');
  * variant of the product — the shell is a supervisor, not a fork.
  */
 
-/** Where the repo sits relative to this file, both packaged and unpackaged. */
+/**
+ * Where the API and dashboard are.
+ *
+ * Running `electron apps/desktop` puts the app path two levels below the repo.
+ * A bundled build puts it inside MockFlow.app instead, which is nowhere near
+ * the code — so the bundle states the root outright and that wins.
+ */
 function repoRoot(appPath) {
-  return join(appPath, '..', '..');
+  return process.env.MOCKFLOW_ROOT || join(appPath, '..', '..');
 }
 
 function startProcess(name, command, args, options, onFatal) {
@@ -52,6 +58,9 @@ async function start({ appPath, userDataPath, onFatal }) {
     // is the Electron binary. This makes it behave as plain Node.
     ELECTRON_RUN_AS_NODE: '1',
     NODE_ENV: 'production',
+    // Its own build directory, so a running `pnpm dev` cannot be serving from
+    // the same place this reads.
+    NEXT_DIST_DIR: '.next-desktop',
     DATABASE_URL: databaseUrl,
     PORT: String(apiPort),
     // Secrets that only ever sign tokens for this machine's own session. A

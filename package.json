@@ -16,7 +16,8 @@
     "db:generate": "pnpm --filter @mockflow/api prisma:generate",
     "db:migrate": "pnpm --filter @mockflow/api prisma:migrate",
     "db:reset": "pnpm --filter @mockflow/api exec prisma migrate reset --force",
-    "desktop": "pnpm --filter @mockflow/desktop start"
+    "desktop": "pnpm --filter @mockflow/desktop start",
+    "build:desktop": "pnpm --filter @mockflow/api build && NEXT_DIST_DIR=.next-desktop pnpm --filter @mockflow/dashboard build"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
