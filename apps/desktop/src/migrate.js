@@ -3,6 +3,7 @@
 const { execFile } = require('node:child_process');
 const { existsSync } = require('node:fs');
 const { join } = require('node:path');
+const { needsNodeFlag } = require('./node-bin');
 
 /**
  * Brings the user's database up to date before the API is allowed to touch it.
@@ -15,7 +16,7 @@ const { join } = require('node:path');
  * `migrate deploy` only applies committed migrations and never prompts or
  * resets, which is what you want against data somebody cares about.
  */
-function migrate({ root, databaseUrl }) {
+function migrate({ root, databaseUrl, node }) {
   return new Promise((resolve, reject) => {
     const prismaBin = require.resolve('prisma/build/index.js', {
       paths: [join(root, 'apps', 'api')],
@@ -28,15 +29,15 @@ function migrate({ root, databaseUrl }) {
     }
 
     execFile(
-      process.execPath,
+      node,
       [prismaBin, 'migrate', 'deploy', '--schema', schema],
       {
         env: {
           ...process.env,
           DATABASE_URL: databaseUrl,
-          // process.execPath is Electron, not Node. Without this it boots a
-          // second Electron app that never exits instead of running the CLI.
-          ELECTRON_RUN_AS_NODE: '1',
+          // Only when we fell back to Electron's binary — it would otherwise
+          // boot a second app that never exits instead of running the CLI.
+          ...(needsNodeFlag(node) ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
         },
         cwd: root,
       },

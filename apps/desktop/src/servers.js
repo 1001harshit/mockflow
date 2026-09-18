@@ -5,6 +5,7 @@ const { join } = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { freePort, waitForHttp } = require('./ports');
 const { migrate } = require('./migrate');
+const { nodeBinary, needsNodeFlag } = require('./node-bin');
 
 /**
  * Starts the API and the dashboard as child processes and keeps hold of them.
@@ -52,11 +53,12 @@ async function start({ appPath, userDataPath, onFatal }) {
   // app bundle — a bundle is replaced wholesale on update.
   const databaseUrl = `file:${join(userDataPath, 'mockflow.db')}`;
 
+  const node = nodeBinary();
+
   const env = {
     ...process.env,
-    // These children are spawned with process.execPath, which under Electron
-    // is the Electron binary. This makes it behave as plain Node.
-    ELECTRON_RUN_AS_NODE: '1',
+    // Only needed when we had to fall back to Electron's own binary.
+    ...(needsNodeFlag(node) ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
     NODE_ENV: 'production',
     // Its own build directory, so a running `pnpm dev` cannot be serving from
     // the same place this reads.
@@ -74,11 +76,11 @@ async function start({ appPath, userDataPath, onFatal }) {
 
   // Migrate before anything connects: the API would otherwise open an empty
   // file and fail on its first query.
-  await migrate({ root, databaseUrl });
+  await migrate({ root, databaseUrl, node });
 
   const api = startProcess(
     'api',
-    process.execPath,
+    node,
     [join(root, 'apps', 'api', 'dist', 'main.js')],
     { cwd: root, env },
     onFatal,
@@ -91,7 +93,7 @@ async function start({ appPath, userDataPath, onFatal }) {
 
   const web = startProcess(
     'web',
-    process.execPath,
+    node,
     [nextBin, 'start', '--port', String(webPort), '--hostname', '127.0.0.1'],
     { cwd: dashboardDir, env },
     onFatal,
