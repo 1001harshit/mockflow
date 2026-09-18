@@ -52,7 +52,6 @@ cat > "$APP/Contents/Resources/app/main.js" <<MAIN
 process.env.PATH = '/opt/homebrew/bin:/usr/local/bin:' + (process.env.PATH || '');
 // The bundle is nowhere near the code, so say where the code is.
 process.env.MOCKFLOW_ROOT = '$ROOT';
-require('electron').app.setName('MockFlow');
 require('$ROOT/apps/desktop/src/main.js');
 MAIN
 

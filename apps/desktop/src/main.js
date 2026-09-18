@@ -5,6 +5,12 @@ const servers = require('./servers');
 const { failurePage } = require('./failure-page');
 const { buildMenu } = require('./menu');
 
+// Set before anything reads app.getPath('userData'). Without it the name comes
+// from the package — so launching through the bundle and launching through
+// `pnpm desktop` would each get their own database, and neither would show
+// the other's projects.
+app.setName('MockFlow');
+
 /**
  * MockFlow desktop shell.
  *
@@ -80,17 +86,43 @@ async function boot() {
   }
 }
 
-app.whenReady().then(boot);
+// Two instances would fight over one SQLite file, so the second hands focus
+// back to the first instead of starting rival servers.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (window && !window.isDestroyed()) {
+      if (window.isMinimized()) window.restore();
+      window.focus();
+    }
+  });
+  app.whenReady().then(boot);
+}
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) void boot();
 });
 
 // Stop supervising before the children go, or their exit reads as a crash.
-app.on('before-quit', () => {
+function shutdown() {
   fatalHandler = null;
-  if (running) running.stop();
-});
+  if (running) {
+    running.stop();
+    running = null;
+  }
+}
+
+app.on('before-quit', shutdown);
+// before-quit does not fire for a signal, and children reparented to init keep
+// the database locked for the next launch.
+process.on('exit', shutdown);
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(signal, () => {
+    shutdown();
+    app.quit();
+  });
+}
 
 // macOS keeps applications running with no windows; everywhere else, closing
 // the last window means quitting.

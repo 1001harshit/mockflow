@@ -6,6 +6,7 @@ const { randomBytes } = require('node:crypto');
 const { freePort, waitForHttp } = require('./ports');
 const { migrate } = require('./migrate');
 const { nodeBinary, needsNodeFlag } = require('./node-bin');
+const { remember, forget, reap } = require('./children');
 
 /**
  * Starts the API and the dashboard as child processes and keeps hold of them.
@@ -46,6 +47,17 @@ function startProcess(name, command, args, options, onFatal) {
 
 async function start({ appPath, userDataPath, onFatal }) {
   const root = repoRoot(appPath);
+
+  // A previous run may have been killed rather than quit, leaving servers alive
+  // and holding the database. Clear those out before touching it.
+  const reaped = reap(userDataPath);
+  if (reaped > 0) {
+    // eslint-disable-next-line no-console
+    console.log(`[shell] stopped ${reaped} server(s) left by a previous run`);
+    // Give the OS a moment to release the file locks with them.
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
   const apiPort = await freePort();
   const webPort = await freePort();
 
@@ -99,6 +111,8 @@ async function start({ appPath, userDataPath, onFatal }) {
     onFatal,
   );
 
+  remember(userDataPath, [api.pid, web.pid].filter(Boolean));
+
   await waitForHttp(`http://127.0.0.1:${apiPort}/health`);
   await waitForHttp(`http://127.0.0.1:${webPort}/login`);
 
@@ -111,6 +125,7 @@ async function start({ appPath, userDataPath, onFatal }) {
       for (const child of [api, web]) {
         if (child && !child.killed) child.kill('SIGTERM');
       }
+      forget(userDataPath);
     },
   };
 }
