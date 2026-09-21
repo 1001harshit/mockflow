@@ -1,0 +1,5 @@
+# Holds a live access token — never commit it.
+.session
+
+# Runtime output from the webhook receiver.
+receiver.log
