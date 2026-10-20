@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -28,6 +29,9 @@ import { WebhooksModule } from './webhooks/webhooks.module';
         join(process.cwd(), '..', '..', '.env'),
       ],
     }),
+    // Limits are opt-in per controller (ThrottlerGuard isn't global), so the
+    // public mock plane can still be load-tested without being rate limited.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
     AuthModule,
     UsersModule,
