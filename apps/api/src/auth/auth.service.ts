@@ -8,6 +8,7 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { Role, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword, verifyPassword } from '../common/hashing';
+import { jwtSecret } from '../common/jwt-secret';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -117,10 +118,10 @@ export class AuthService {
   }
 
   private get accessSecret(): string {
-    return this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access-secret';
+    return jwtSecret(this.config, 'JWT_ACCESS_SECRET');
   }
   private get refreshSecret(): string {
-    return this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh-secret';
+    return jwtSecret(this.config, 'JWT_REFRESH_SECRET');
   }
   private get accessTtl(): string {
     return this.config.get<string>('JWT_ACCESS_TTL') ?? '15m';

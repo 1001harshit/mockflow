@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProjectAccessGuard } from '../projects/guards/project-access.guard';
 import {
@@ -25,7 +26,7 @@ import { GenerateDataDto } from './dto/generate-data.dto';
  * Jobs themselves are workspace-scoped, which is where quota will eventually sit.
  */
 @Controller('api/projects/:id/ai')
-@UseGuards(JwtAuthGuard, ProjectAccessGuard)
+@UseGuards(JwtAuthGuard, ProjectAccessGuard, ThrottlerGuard)
 export class AiController {
   constructor(
     private readonly ai: AiService,
@@ -52,6 +53,8 @@ export class AiController {
   }
 
   /** Suggest response examples, validation rules and a starting test suite. */
+  // Each call can spend OpenAI tokens, so keep a lid on how fast they come.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('endpoints/:endpointId/suggest')
   @HttpCode(HttpStatus.OK)
   suggest(
@@ -65,6 +68,8 @@ export class AiController {
   }
 
   /** Fill an endpoint's response with believable data. */
+  // Each call can spend OpenAI tokens, so keep a lid on how fast they come.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('endpoints/:endpointId/generate')
   @HttpCode(HttpStatus.OK)
   generate(
